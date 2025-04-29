@@ -1,0 +1,2933 @@
+{
+  "name": "My workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "fbd8e8ce-d208-4ac6-918c-b40acf3f10ee",
+      "name": "Loop Over Items",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        2040,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "jsonMode": "expressionData",
+        "jsonData": "={{ $('HTTP Request8').item.json.results[0].markdown }}",
+        "options": {
+          "metadata": {
+            "metadataValues": [
+              {
+                "name": "url",
+                "value": "={{ $('HTTP Request8').item.json.results[0].url }}"
+              },
+              {
+                "name": "query",
+                "value": "={{ $('extract url and query').item.json.query }}"
+              },
+              {}
+            ]
+          }
+        }
+      },
+      "id": "3f6406bb-dc78-44de-a85c-fed8634e0ddb",
+      "name": "Default Data Loader",
+      "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+      "typeVersion": 1,
+      "position": [
+        3160,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "chunkSize": 700,
+        "chunkOverlap": 100
+      },
+      "id": "8b3753a4-a797-40e1-a3c5-743ad702d1b2",
+      "name": "Character Text Splitter",
+      "type": "@n8n/n8n-nodes-langchain.textSplitterCharacterTextSplitter",
+      "typeVersion": 1,
+      "position": [
+        3300,
+        700
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "insert",
+        "tableName": {
+          "__rl": true,
+          "value": "documents",
+          "mode": "list",
+          "cachedResultName": "documents"
+        },
+        "options": {
+          "queryName": "match_documents"
+        }
+      },
+      "id": "891f9fc3-99b8-43e2-bc3e-3ae953236759",
+      "name": "Supabase Vector Store",
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1,
+      "position": [
+        3060,
+        300
+      ],
+      "alwaysOutputData": true,
+      "retryOnFail": false,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "content": "## 1.1 Set the search parameters\n\nIn the first step the search parameters can be set.\nThe LLM will automatically generate different search request variations\n\n- use **Set search request** to set the search parameter\n- you can prompt the amount of variations in the **Get different search variations** node change the amount:  `1–2 Strings` to your liking\n\n",
+        "height": 234,
+        "width": 590,
+        "color": 7
+      },
+      "id": "2c94cdb9-cf7e-48e2-b037-426aa7287c85",
+      "name": "Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        80,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "results[0].markdown",
+        "options": {
+          "destinationFieldName": "documents"
+        }
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        2500,
+        300
+      ],
+      "id": "4468bd94-2f0c-4b5a-9470-88be28827416",
+      "name": "Split Out1"
+    },
+    {
+      "parameters": {
+        "model": "mxbai-embed-large:latest"
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOllama",
+      "typeVersion": 1,
+      "position": [
+        2980,
+        560
+      ],
+      "id": "d74b44c5-65d7-43ca-add0-56af09e5fb17",
+      "name": "Embeddings Ollama",
+      "credentials": {
+        "ollamaApi": {
+          "id": "aY23H7dT9IpjRc6y",
+          "name": "Ollama account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"variations\": {\n      \"type\": \"array\",\n      \"items\": { \"type\": \"string\" }\n    }\n  },\n  \"required\": [\"variations\"]\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.2,
+      "position": [
+        640,
+        460
+      ],
+      "id": "cde25543-6d86-47d7-a622-0a343e0490f7",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "url": "http://host.docker.internal:8080/search",
+        "sendQuery": true,
+        "specifyQuery": "=keypair",
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "=q",
+              "value": "={{ $json.variations }}"
+            },
+            {
+              "name": "format",
+              "value": "json"
+            }
+          ]
+        },
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 1
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1180,
+        280
+      ],
+      "id": "ce7a7a07-bd5f-4dde-bed0-c912791a0376",
+      "name": "searxng"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.0-flash-001",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        440,
+        460
+      ],
+      "id": "4298b406-2cad-4ec3-8094-8cd761f57454",
+      "name": "Google Gemini Chat Model2"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "output.variations",
+        "options": {
+          "destinationFieldName": "variations"
+        }
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        900,
+        280
+      ],
+      "id": "644f5c0b-0bdf-43d3-b6f7-f2124d3ddbe5",
+      "name": "Split Out2"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "results",
+        "include": "selectedOtherFields",
+        "fieldsToInclude": "query",
+        "options": {
+          "destinationFieldName": "results"
+        }
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        1360,
+        280
+      ],
+      "id": "c2a485b3-3623-4eaf-85ea-a4e18ad20544",
+      "name": "Split Out3"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "14facf3f-b95f-43db-8ffa-cf3ded5ba5e0",
+              "name": "topic",
+              "value": "e-mobility trends",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        260,
+        280
+      ],
+      "id": "5d279f7d-d756-4611-ada2-8f3cbabbc897",
+      "name": "Set search request"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Du bist ein Assistant, der mir hilft, für eine Suchanfrage alle sinnvollen Varianten (Synonyme, englische/ deutsche Schreibweisen, Zusammen‑/Getrenntschreibung) auszuspielen. \nEingabe: ein Thema {{ $json.topic }}. \nAusgabe: **nur** ein gültiges JSON‑Objekt mit genau einem Feld \"variations\", das eine Liste von 1–2 Strings enthält.\nBeispiel‑Schema:\n{\n  \"type\": \"object\",\n  \"properties\": {\n    \"variations\": {\n      \"type\": \"array\",\n      \"items\": { \"type\": \"string\" }\n    }\n  },\n  \"required\": [\"variations\"]\n}\n\n**Keine** zusätzlichen Erklärungen oder Floskeln, **nur** das JSON.\n",
+        "hasOutputParser": true
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.6,
+      "position": [
+        440,
+        280
+      ],
+      "id": "427a077c-08bc-4910-afbb-0edabd91147c",
+      "name": "Get different search variations",
+      "alwaysOutputData": true,
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "content": "## 1.2 Search for URLs with Searxng\n\nIt is necessary to run the searxng docker: https://github.com/searxng/searxng-docker\nto run on windows you also need to run the docker desktop app.\n\n1. edit the settings.yml:\n```\nuse_default_settings: true\n\nserver:\n  # change this key\n  secret_key: \"test\"\n  # disable limiter, otherwise problems will occure \n  limiter: false\n  public_instance: false\n\n# load the default json endpoint (set per default, just to make sure)\nsearch:\n  formats:\n    - html\n    - json\n\n# DOI‑Resolver, for scientific papers\ndoi_resolvers:\n  oadoi.org:   'https://oadoi.org/'\n  doi.org:     'https://doi.org/'\ndefault_doi_resolver: 'oadoi.org'\n```\n2. in the searxng root terminal run docker compose up \n3. set the limit how many websites you want to search\n\n### 4. Default URL:\n- the default url is specified for starting n8n via docker: `http://host.docker.internal:8080/search` \n- if you run n8n on your pc via `npx n8n` instead use: `http://127.0.0.1:8080/search` \n\n### 5. add parameters to the searching node:\n- click on **Add parameter** in the searxng node\n- Name: `categories`\n- Value: `news ` for news, `science` for research papers\n",
+        "height": 814,
+        "width": 670,
+        "color": 7
+      },
+      "id": "c984bda1-6cbf-4445-acaf-3a9c79182bb9",
+      "name": "Sticky Note2",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1180,
+        520
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c9aa5a9e-fffe-4cca-bd02-7c15b114f5d5",
+              "name": "results.url",
+              "value": "={{ $json.results.url }}",
+              "type": "string"
+            },
+            {
+              "id": "076427e6-c2cd-43f5-ba8b-3abc39fc491b",
+              "name": "query",
+              "value": "={{ $json.query }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1540,
+        280
+      ],
+      "id": "b4172610-48ba-432f-96d4-ace99fc5947a",
+      "name": "extract url and query"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://host.docker.internal:11235/crawl",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"urls\": [\"{{ $json.results.url }}\"],\n  \"priority\": 10\n}\n",
+        "options": {}
+      },
+      "id": "bc3b7ec7-a62b-40b2-8ce4-95003b396e2b",
+      "name": "HTTP Request8",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2320,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 1.3 Scrape the website with Crawl4ai\n\n### 1. Only needed if not using the provided docker image\n- Download the docker files: https://docs.crawl4ai.com/core/docker-deployment/\n- follow the steps as shown in the documentation for local development and build and run locally with `docker compose up --build -d`\n\n### 3. Default URL:\n- the default url is specified for starting n8n via docker: `http://host.docker.internal:11235/crawl` \n- if you run n8n on your pc via `npx n8n` instead use: `http://127.0.0.1:11235/crawl` \n\n\n",
+        "height": 314,
+        "width": 690,
+        "color": 7
+      },
+      "id": "8d7c2d75-d86e-4b97-be41-0a103001678f",
+      "name": "Sticky Note3",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2000,
+        520
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 1.4 Store the websites in the Vector Database\n\n1. To store the data of the webiste in a vector database create a supabase account and create a projekt in the sql editor copy and run the following code, specified for embedding with ollama:\n```\n-- 1) pgvector-Extension (falls nicht bereits aktiv)\nCREATE EXTENSION IF NOT EXISTS vector;\n\n-- 2) Neue Tabelle mit 1024-dimensionalem Embedding\nCREATE TABLE documents (\n  id        bigserial PRIMARY KEY,\n  content   text,\n  metadata  jsonb,\n  embedding vector(1024)\n);\n\n-- 3) IVFFlat-Index für schnelle Ähnlichkeitssuche\nCREATE INDEX ON documents\nUSING ivfflat (embedding vector_l2_ops)\nWITH (lists = 100);\n\n-- 4) Funktion für 1024-dim-Vektoren anlegen\nCREATE OR REPLACE FUNCTION match_documents (\n  query_embedding vector(1024),\n  match_count    int      DEFAULT NULL,\n  filter         jsonb    DEFAULT '{}'\n) RETURNS TABLE (\n  id         bigint,\n  content    text,\n  metadata   jsonb,\n  similarity float\n)\nLANGUAGE plpgsql\nAS $$\nBEGIN\n  RETURN QUERY\n    SELECT\n      docs.id        AS id,\n      docs.content   AS content,\n      docs.metadata  AS metadata,\n      1 - (docs.embedding <=> query_embedding) AS similarity\n    FROM documents AS docs\n    WHERE docs.metadata @> filter\n    ORDER BY docs.embedding <=> query_embedding\n    LIMIT match_count;\nEND;\n$$;\n\n```\n- Pull `ollama pull mxbai-embed-large:latest` and make sure the ollama server is already running with `ollana serve`\n\n### 2. Default URL for Ollama Credentials:\n- the default url is specified for starting n8n via docker: `http://host.docker.internal:11434` \n- if you run n8n on your pc via `npx n8n` instead use: `http://localhost:11434` ",
+        "height": 1014,
+        "width": 690,
+        "color": 7
+      },
+      "id": "33152f4a-c841-4b6f-b32f-967cc354929b",
+      "name": "Sticky Note7",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        3480,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Basierend auf den vorliegenden Dokumenten und deinem Expertenwissen, beantworte diese Frage:\n\n{{ $json.frage }}",
+        "options": {
+          "systemPromptTemplate": "=Du bist Research-Assistant™, Dr.-Level in E-Mobilität.\n\n# Regeln:\n\n1. Nutze ausschließlich diesen Kontext:\n\n{context}\n\n2. Beantworte dann die Frage:\n\n{{ $json.frage }}\n\n3. verwende nur die relevanteste quelle und merke dir die url aus den metadaten, gib nur eine konkrete url zurück! \n\n3. Antworte nur im JSON. Befülle folgende Felder:\n\n- frage (string)\n- thema (string)\n- url (string)\n- zusammenfassung (string)\n- analyse (string)\n- ranking (string)\n\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainRetrievalQa",
+      "typeVersion": 1.5,
+      "position": [
+        1980,
+        1860
+      ],
+      "id": "532ac2ad-5c83-449c-8c40-8d12af83c0d9",
+      "name": "Question and Answer Chain",
+      "alwaysOutputData": true,
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "topK": 20
+      },
+      "type": "@n8n/n8n-nodes-langchain.retrieverVectorStore",
+      "typeVersion": 1,
+      "position": [
+        2100,
+        2140
+      ],
+      "id": "822d356a-7e49-4caf-b4eb-a05fc0f92f90",
+      "name": "Vector Store Retriever"
+    },
+    {
+      "parameters": {
+        "tableName": {
+          "__rl": true,
+          "value": "documents",
+          "mode": "list",
+          "cachedResultName": "documents"
+        },
+        "options": {
+          "queryName": "match_documents"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1.1,
+      "position": [
+        2140,
+        2340
+      ],
+      "id": "9f312dd0-850c-4970-b939-c21910a14c30",
+      "name": "Supabase Vector Store4"
+    },
+    {
+      "parameters": {
+        "model": "mxbai-embed-large:latest"
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOllama",
+      "typeVersion": 1,
+      "position": [
+        2060,
+        2540
+      ],
+      "id": "7bc782fa-cacd-4aa4-adef-75adac964fcc",
+      "name": "Embeddings Ollama3",
+      "credentials": {
+        "ollamaApi": {
+          "id": "aY23H7dT9IpjRc6y",
+          "name": "Ollama account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.0-flash-001",
+        "options": {
+          "temperature": 0.2
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        1960,
+        2140
+      ],
+      "id": "572aa614-1d14-4359-bfcc-b6614a407ae5",
+      "name": "Google Gemini Chat Model5"
+    },
+    {
+      "parameters": {
+        "maxItems": 100
+      },
+      "type": "n8n-nodes-base.limit",
+      "typeVersion": 1,
+      "position": [
+        1720,
+        280
+      ],
+      "id": "c5a8aa13-d510-4a67-8cbf-cf5c0f8746e9",
+      "name": "Limit"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "00eb5335-583c-4756-aa39-6e79701b8495",
+              "name": "question",
+              "value": "Welche Trends, Technologien und Rahmenbedingungen sind aktuell und in den nächsten Jahrzehnten relevant für die Entwicklung der Elektromobilität in Deutschland? Berücksichtigen Sie dabei Infrastruktur (Lade-Netze, Stromversorgung), Politik und Regulierung (Förderprogramme, Gesetzgebung), Wirtschaft (Marktentwicklung, Industriepartnerschaften), Technologie (Batterie-Innovation, Fahrzeugdesign) und gesellschaftliches Nutzungsverhalten.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1080,
+        1860
+      ],
+      "id": "06960bc2-6759-4b83-a86c-c0e3517403d3",
+      "name": "Theme Question"
+    },
+    {
+      "parameters": {
+        "content": "# 1. Vectorstorage Workflow\n\n## Get and store data for topic: e-mobility\n\nThis is the workflow just to get the data and store it.\nAnalyzation will be done in the 2. workflow\n\n",
+        "height": 220,
+        "width": 490,
+        "color": 4
+      },
+      "id": "9fcb626a-127a-4d0a-836a-79fc3db14759",
+      "name": "Sticky Note8",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -480,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 2.2 Set the analysing question and rank the best data\n\n- use **Theme Question** to edit the input question\n- Number of results by the Vector Store can be set in the **Vector Store Retreiver** Node\n",
+        "height": 214,
+        "width": 530,
+        "color": 7
+      },
+      "id": "26e03908-9ed5-43d8-a1c9-3b0e9cfd8f5e",
+      "name": "Sticky Note9",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1040,
+        1440
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 7
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        60,
+        280
+      ],
+      "id": "280a1dad-2e8a-4d18-86a7-f501a60a7b2c",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "content": "# 2. Analyzing workflow \n\n## Analyze the data\n\nThis is the workflow is necessary for the data analyzation. Simple with just one node\n\n\n",
+        "height": 220,
+        "width": 490,
+        "color": 5
+      },
+      "id": "670a6bb1-1ced-4059-8702-46c3bf7392ab",
+      "name": "Sticky Note10",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -460,
+        1440
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Experimental: Analyze the data with an AI Agent \n\nThis is the workflow is necessary for the data analyzation, implemented with an AI Agent who calls a sub-workflow\n\n\n",
+        "height": 140,
+        "width": 490,
+        "color": 5
+      },
+      "id": "316493fd-7a5b-4645-aa14-6c92a80957c1",
+      "name": "Sticky Note11",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -480,
+        4860
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 3. Experimental: Sub-workflow for the AI Agent\n\nThis is the sub-workflow which gets the RAG Data, it needs to be copied in an extra workflow file outside of this one\n",
+        "height": 140,
+        "width": 490,
+        "color": 6
+      },
+      "id": "d2dc8319-c0b0-4432-a698-3fceb0a2c40c",
+      "name": "Sticky Note12",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        980,
+        4860
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Basierend auf den vorliegenden Dokumenten und deinem Expertenwissen, beantworte diese Frage:\n\n{{ $json.question }}\n\nGib mir die Antwort als JSON-Array zurück.\n",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "Du bist Research-Assistant™, Dr.-Level in E-Mobilität.  \nWenn Du Kontext brauchst, rufe **search_docs(query, 10)** auf. Du erhältst ein Array von 10 Dokumenten, jedes mit mindestens diesen Feldern:\n- url     (string)\n- title   (string)\n- snippet (string – kurzer Auszug)\n\nArbeite so:\n\n1. Rufe **search_docs({{ $json.parameters.query }}, 10)** auf (schreibe im Stream-of-Thought: „I will call search_docs because…“).  \n2. Ordne jedem der 10 Treffer einen eigenen Trend zu.  \n3. Für jedes Ergebnis baue ein JSON-Objekt mit diesen Feldern:\n   - **uebertheme**: immer „E-Mobilität“  \n   - **theme**: kurzer Trend-Name (z. B. „Plug and Charge“)  \n   - **url**: exakte URL aus dem RAG-Treffer  \n   - **analysis**: 2–3 Sätze, die erklären, **warum gerade dieses Dokument** den Trend untermauert (verweise auf Title oder Snippet)  \n   - **summary**: 1–2 Sätze prägnanter Zusammenfassung des Dokuments  \n   - **ranking**: Position 1–10 entsprechend Relevanz (1 = höchst relevant)  \n   - **date**: heutiges Datum im Format YYYY-MM-DD\n\n4. Gib **nur** ein JSON-Array mit genau 10 solchen Objekten zurück – sonst nichts.\n",
+          "maxIterations": 10
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.9,
+      "position": [
+        540,
+        4860
+      ],
+      "id": "08b2a7f4-45ea-4a6d-8e25-1d83148ab783",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.0-flash-001",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        480,
+        5080
+      ],
+      "id": "df1e085f-a9cb-4fb6-97ca-d5e056641133",
+      "name": "Google Gemini Chat Model"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {}
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        100,
+        4860
+      ],
+      "id": "423c8229-664f-4d8b-8dad-e84a24362ae1",
+      "name": "Schedule Trigger2"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "00eb5335-583c-4756-aa39-6e79701b8495",
+              "name": "question",
+              "value": " Welche Trends sind für E-Mobilität in Deutschland in den nächsten 40 Jahren relevant?",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        320,
+        4860
+      ],
+      "id": "44a90c33-9613-4401-ab05-273b66128cae",
+      "name": "Theme Question2"
+    },
+    {
+      "parameters": {
+        "name": "search_docs",
+        "description": "search the vector data base to answer the question.",
+        "workflowId": {
+          "__rl": true,
+          "value": "0kjMhRTU8aA2NSAb",
+          "mode": "list",
+          "cachedResultName": "search_docs"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "name": "search_docs",
+            "description": "Search the vector database for semantically similar documents",
+            "parameters": "={\n  \"query\": \"{{ $fromAI('query', '', 'string') }}\"\n}\n"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "name",
+              "displayName": "name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "description",
+              "displayName": "description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "parameters",
+              "displayName": "parameters",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "object",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.1,
+      "position": [
+        640,
+        5080
+      ],
+      "id": "ed39c89e-c9bc-4ce8-b2c8-1db45881b49a",
+      "name": "search_docs2"
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "[\n  {\n    \"uebertheme\": \"E-Mobilität\",\n    \"theme\": \"Plug and Charge\",\n    \"url\": \"https://goingelectric.de/plug-and-charge-pilotprojekt\",\n    \"analysis\": \"Dieses Pilotprojekt beschreibt im Detail, wie ISO 15118 die Ladeauthentifizierung automatisiert – besonders interessant sind die Feldtests in München und Berlin, die im Artikel erläutert werden.\",\n    \"summary\": \"Plug and Charge ermöglicht das automatische Starten und Abrechnen von Ladevorgängen ohne zusätzliche Hardware oder App.\",\n    \"ranking\": 1,\n    \"date\": \"2025-04-25\"\n  },\n  {\n    \"uebertheme\": \"E-Mobilität\",\n    \"theme\": \"Bidirektionales Laden\",\n    \"url\": \"https://bdew.de/v2g-studie-2024\",\n    \"analysis\": \"Die BDEW-Studie zeigt anhand von Simulationen für das Berliner Netz, wie V2G bis zu 15 % Spitzenlast abfedern kann – interessant sind die Methodik und die konkreten Zahlen zur Netzstabilität.\",\n    \"summary\": \"Bidirektionales Laden erlaubt es E-Autos, Strom ins Netz zurückzuspeisen und so Netzschwankungen auszugleichen.\",\n    \"ranking\": 2,\n    \"date\": \"2025-04-25\"\n  }\n]\n"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.2,
+      "position": [
+        800,
+        5080
+      ],
+      "id": "451b234f-8930-4dd0-a2ba-5a261ce873d2",
+      "name": "Structured Output Parser1"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "Beantworte diese Frage mit den 10 besten Vektor-DB-Treffern und liefere eine wissenschaftlich fundierte Analyse:\n\nWelche Trends sind für E-Mobilität in Deutschland in den nächsten 40 Jahren relevant?\n",
+        "options": {
+          "systemPromptTemplate": "=Du bist Research-Assistant™, Dr.-Level in E-Mobilität.\nNutze ausschließlich diesen Kontext:\n\n{context}\n\nBeantworte dann die Frage:\n\n{{ $json.parameters.query }}\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainRetrievalQa",
+      "typeVersion": 1.5,
+      "position": [
+        1860,
+        4880
+      ],
+      "id": "ac42eb73-1c40-4a46-9be1-300e9f12716b",
+      "name": "Question and Answer Chain1"
+    },
+    {
+      "parameters": {
+        "topK": 20
+      },
+      "type": "@n8n/n8n-nodes-langchain.retrieverVectorStore",
+      "typeVersion": 1,
+      "position": [
+        2000,
+        5100
+      ],
+      "id": "6e13b926-28a1-48ae-a388-51d3a425ace9",
+      "name": "Vector Store Retriever1"
+    },
+    {
+      "parameters": {
+        "tableName": {
+          "__rl": true,
+          "value": "documents",
+          "mode": "list",
+          "cachedResultName": "documents"
+        },
+        "options": {
+          "queryName": "match_documents"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1.1,
+      "position": [
+        2040,
+        5300
+      ],
+      "id": "16caecd6-43c0-4c0a-b640-19d8b52a42a1",
+      "name": "Supabase Vector Store5"
+    },
+    {
+      "parameters": {
+        "model": "mxbai-embed-large:latest"
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOllama",
+      "typeVersion": 1,
+      "position": [
+        1960,
+        5500
+      ],
+      "id": "c4d5baa3-a338-4b13-9ba5-2f978e09b3eb",
+      "name": "Embeddings Ollama4"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.0-flash-001",
+        "options": {
+          "temperature": 0.2
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        1760,
+        5100
+      ],
+      "id": "99042f67-70ae-441a-b303-382410b89d6d",
+      "name": "Google Gemini Chat Model6"
+    },
+    {
+      "parameters": {
+        "inputSource": "jsonExample",
+        "jsonExample": "{\n  \"name\": \"search_docs\",\n  \"description\": \"Search the vector database for semantically similar documents\",\n  \"parameters\": {\n    \"type\": \"object\",\n    \"properties\": {\n      \"query\": {\n        \"type\": \"string\",\n        \"description\": \"The user’s question\"\n      }\n    },\n    \"required\": [\"query\"]\n  }\n}\n"
+      },
+      "id": "febcdad6-abed-41c1-8ddc-ee01332ab507",
+      "typeVersion": 1.1,
+      "name": "search_docs1",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [
+        1560,
+        4880
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Basierend auf dieser Fragestellung:\n\n{{ $json.question }}\n\ngeneriere einen prompt für die Vectordatenbank um die relevantesten Dokumente herauszufinden, fasse dich vom unfang her so kurz wie die frage selbst, nutze unterschiedliche variationen damit immer eine neue query rauskommt.\n\nKein Einleitungstext, kein schnickschnack nur eine einzige Frage!",
+        "messages": {
+          "messageValues": [
+            {
+              "message": "=Du bist ein wissenschaftler und stellst dir die frage nach den zukunftstrends der e mobilität in deutschland. dein output ist eine einzige frage vom unfang her so groß wie die übergebene frage:  {{ $json.question }} varieere und sei kreativ in der formulierung, blicke über den tellerand der ursprünglichen frage hinaus!"
+            }
+          ]
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.6,
+      "position": [
+        1340,
+        1860
+      ],
+      "id": "40d92ff8-622d-4617-9c78-c68295f91b04",
+      "name": "Basic LLM Chain"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.0-flash-001",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        1320,
+        2120
+      ],
+      "id": "fc9da751-d887-4507-af5f-4a13a3400ab7",
+      "name": "Google Gemini Chat Model1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "3f8d891d-fbb8-4688-bd75-591140b4bc82",
+              "name": "frage",
+              "value": "={{ $json.text }}",
+              "type": "string"
+            },
+            {
+              "id": "3f676690-e721-4aeb-a7cd-d439d878ee31",
+              "name": "thema",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "df01242b-0579-4b52-983d-b56aa1cca60c",
+              "name": "url",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "97533a06-06cd-44ef-a2d4-5d6c3c599fb4",
+              "name": "zusammenfassung",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "779dcfe4-3c40-482d-b48a-2df4fc13d4df",
+              "name": "analysen",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "338f90d9-89b6-4435-b2db-9991994e6af2",
+              "name": "ranking",
+              "value": 0,
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1740,
+        1860
+      ],
+      "id": "a6bbea51-794e-4972-a153-5afc9bf30df0",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "text": "={{ $json.response }}",
+        "attributes": {
+          "attributes": [
+            {
+              "name": "frage",
+              "description": "die ursprüngliche frage auf die das llm geantwortet hat",
+              "required": true
+            },
+            {
+              "name": "thema",
+              "description": "das thema kurz als überschrift",
+              "required": true
+            },
+            {
+              "name": "url",
+              "description": "die angegebene url",
+              "required": true
+            },
+            {
+              "name": "zusammenfassung",
+              "description": "die zusammenfassung des textes",
+              "required": true
+            },
+            {
+              "name": "analysen",
+              "description": "die analyse des textes",
+              "required": true
+            },
+            {
+              "name": "ranking",
+              "description": "das ranking der relevanz",
+              "required": true
+            }
+          ]
+        },
+        "options": {
+          "systemPromptTemplate": "You are an expert extraction algorithm.\nOnly extract relevant information from the text.\nIf you do not know the value of an attribute asked to extract, leave it blank"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.informationExtractor",
+      "typeVersion": 1,
+      "position": [
+        2400,
+        1860
+      ],
+      "id": "c4c43742-a533-48a4-887d-6d8626e183cd",
+      "name": "Information Extractor",
+      "alwaysOutputData": true,
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.0-flash-001",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        2460,
+        2140
+      ],
+      "id": "1ac22cfb-3f53-4b03-a7b9-94c6414ac3d4",
+      "name": "Google Gemini Chat Model4"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "4ea899ff-ae1d-4dcb-8cd9-03cb799ac308",
+              "name": "output.frage",
+              "value": "={{ $json.output.frage }}",
+              "type": "string"
+            },
+            {
+              "id": "0fccd4e0-03e9-4874-bec9-8672ec86b722",
+              "name": "output.thema",
+              "value": "={{ $json.output.thema }}",
+              "type": "string"
+            },
+            {
+              "id": "08a4f0a2-1478-4e37-b4f8-1573e48787df",
+              "name": "output.url",
+              "value": "={{ $json.output.url }}",
+              "type": "string"
+            },
+            {
+              "id": "48d62b56-6363-4203-8fac-0965eec25dae",
+              "name": "output.zusammenfassung",
+              "value": "={{ $json.output.zusammenfassung }}",
+              "type": "string"
+            },
+            {
+              "id": "47f5ae98-881a-46ba-aac8-3017fe3a460b",
+              "name": "output.analysen",
+              "value": "={{ $json.output.analysen }}",
+              "type": "string"
+            },
+            {
+              "id": "ef909638-41a1-4776-a0c9-b432df090d0e",
+              "name": "output.ranking",
+              "value": "={{ $json.output.ranking }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2740,
+        1860
+      ],
+      "id": "fe36aacf-77cb-4e9b-9af6-f75b773c27cf",
+      "name": "Edit Fields1"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        800,
+        1680
+      ],
+      "id": "92731d1b-c2a5-4bfe-9b44-05362273872b",
+      "name": "Loop Over Items1"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Anzahl der Wiederholungen\nconst count = 7;\n\n// Erzeuge ein Array mit 'count' leeren Objekten\nconst items = [];\nfor (let i = 0; i < count; i++) {\n  items.push({ json: {} });\n}\n\n// Gib die Items zurück\nreturn items;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        100,
+        1680
+      ],
+      "id": "dba024b9-ad76-4fb8-8e24-bf2e499d0619",
+      "name": "Code"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.1,
+      "position": [
+        2980,
+        1680
+      ],
+      "id": "018d2ab0-bf40-4df5-89cd-3189f391cabf",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Du erhältst ein JSON-Array unter dem Feld {{ JSON.stringify($json.data) }}.  \nJedes Element hat die Felder frage, thema, url, zusammenfassung, analyse, ranking.  \nWähle daraus die 2 **relevantesten** Items aus und liefere ein neues JSON-Array mit genau diesen beiden Objekten.  \nFüge jedem Objekt das Feld \"begründung\" hinzu, in dem Du in 1–2 Sätzen erklärst, warum gerade diese Quelle so gewählt wurde.\n\n\nDu erhältst ein JSON-Array unter dem Feld {{ JSON.stringify($json.data) }}. \nJedes Element hat die Felder frage, thema, url, zusammenfassung, analysen, ranking.\n\nWähle die 2 relevantesten Objekte aus, füge jedem das Feld \"begründung\" hinzu, in dem Du in 1–2 Sätzen erklärst, warum gerade diese Quelle so gewählt wurde und gib **ausschließlich** ein gültiges JSON-Array zurück.\n\n",
+        "hasOutputParser": true,
+        "messages": {
+          "messageValues": [
+            {
+              "message": "=Du bist eine Expertin für Elektrotechnik und Wirtschaft am Standort Deutschland und analysierst auf Professoren-Level für die Forschung.\n"
+            }
+          ]
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.6,
+      "position": [
+        3440,
+        1680
+      ],
+      "id": "412e430a-8d7c-4ced-8719-90524c314a26",
+      "name": "Basic LLM Chain1",
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.0-flash-001",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        3360,
+        1880
+      ],
+      "id": "a3a198fc-72d0-4a91-929e-1a600afb7c3c",
+      "name": "Google Gemini Chat Model7"
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        3200,
+        1680
+      ],
+      "id": "74df4e7e-0960-4111-92a0-980f5689091e",
+      "name": "Aggregate"
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"array\",\n  \"minItems\": 2,\n  \"maxItems\": 2,\n  \"items\": {\n    \"type\": \"object\",\n    \"properties\": {\n      \"frage\":         { \"type\": \"string\" },\n      \"thema\":         { \"type\": \"string\" },\n      \"url\":           { \"type\": \"string\", \"format\": \"uri\" },\n      \"zusammenfassung\": { \"type\": \"string\" },\n      \"analysen\":       { \"type\": \"string\" },\n      \"ranking\":       { \"type\": \"string\" },\n      \"begründung\":    { \"type\": \"string\" }\n    },\n    \"required\": [\"frage\",\"thema\",\"url\",\"zusammenfassung\",\"analyse\",\"ranking\",\"begründung\"]\n  }\n}\n"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.2,
+      "position": [
+        3560,
+        1880
+      ],
+      "id": "63f61929-bc24-4ecc-add4-7b3049a68bbe",
+      "name": "Structured Output Parser2"
+    },
+    {
+      "parameters": {
+        "tableId": "quellen",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "frage",
+              "fieldValue": "={{ $json.output[0].frage }}"
+            },
+            {
+              "fieldId": "thema",
+              "fieldValue": "={{ $json.output[0].thema }}"
+            },
+            {
+              "fieldId": "url",
+              "fieldValue": "={{ $json.output[0].url }}"
+            },
+            {
+              "fieldId": "zusammenfassung",
+              "fieldValue": "={{ $json.output[0].zusammenfassung }}"
+            },
+            {
+              "fieldId": "analysen",
+              "fieldValue": "={{ $json.output[0].analysen }}"
+            },
+            {
+              "fieldId": "ranking",
+              "fieldValue": "={{ $json.output[0].ranking }}"
+            },
+            {
+              "fieldId": "begründung",
+              "fieldValue": "={{ $json.output[0]['begründung'] }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        4100,
+        1840
+      ],
+      "id": "96210cb8-297e-438d-9b97-800bc6d91a80",
+      "name": "Supabase"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        3900,
+        1680
+      ],
+      "id": "f9e34469-78d1-4f75-a4f0-13ae00f461be",
+      "name": "Loop Over Items2"
+    },
+    {
+      "parameters": {
+        "content": "## 2.3 Let the Model analyze the best results\n\n- in this node the model analyzes the results and outputs an array only with the two best results\n- the amount of results the model gives back can be defined in the prompt\n",
+        "height": 194,
+        "width": 530,
+        "color": 7
+      },
+      "id": "8ca34647-b084-4142-8823-8e1f8d268dba",
+      "name": "Sticky Note13",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2980,
+        1440
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 2.4 Store the best results in the database\n\n- it loops over the best results and stores them in the database\n- Setup the database with the following sql query in the sql editor in supabase:\n\n```\ncreate extension if not exists \"pgcrypto\";\n\n\ncreate table public.quellen (\n  id              uuid                     primary key default gen_random_uuid(),\n  frage           text                     not null,\n  thema           text                     not null,\n  url             text                     not null,\n  zusammenfassung text,       -- <— Komma hier!\n  analysen         text,       -- jetzt klappt die nächste Zeile\n  ranking         text,\n  \"begründung\"    text,       -- Umlaut-Spalte in Anführungszeichen\n  created_at      timestamp with time zone default now()\n);\n```\n",
+        "height": 434,
+        "width": 810,
+        "color": 7
+      },
+      "id": "5deba801-56b5-4ed9-b6e5-9cd5e55b06e4",
+      "name": "Sticky Note14",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        4320,
+        1660
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 2.1 Setting the amount of retrieved items from the vector store\n\n- set the amount of retrieved items with `const count`\n- the amount will define how many resources the AI will analyze\n",
+        "height": 214,
+        "width": 530,
+        "color": 7
+      },
+      "id": "30ad8204-179b-4ab8-97f9-61ca8aa5df43",
+      "name": "Sticky Note15",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        100,
+        1440
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 2.3 Let the LLM retreive Data from the Vector store\n\n- the LLM will retreive the data from supabase\n- connect supbase, gemini and ollama credentials\n",
+        "height": 214,
+        "width": 530,
+        "color": 7
+      },
+      "id": "08c35145-0102-4ff9-a18a-a2dcfb8b9ef3",
+      "name": "Sticky Note16",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1960,
+        1440
+      ]
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "name": "Replace Me",
+      "typeVersion": 1,
+      "position": [
+        100,
+        3140
+      ],
+      "id": "9d32c161-8523-469d-8657-a39f825dad12"
+    },
+    {
+      "parameters": {
+        "content": "# 3. Continue the Workflow\n\n- to continue the workflow replace this node with the workflow 1 and 2 by copy and pasting them.\n- this way it is possible to analyze multiple different topics in one continious workflow\n- subject topics need to be changed in the `set search request` node and the `theme topic` node\n\n",
+        "height": 220,
+        "width": 490,
+        "color": 7
+      },
+      "id": "52db2b07-c8ea-4549-96ed-cb11c8f3eb24",
+      "name": "Sticky Note17",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -460,
+        3100
+      ]
+    }
+  ],
+  "pinData": {
+    "searxng": [
+      {
+        "json": {
+          "query": "e-mobility trends",
+          "number_of_results": 0,
+          "results": [
+            {
+              "url": "https://www.mckinsey.com/industries/automotive-and-assembly/our-insights/spotlight-on-mobility-trends",
+              "title": "A year of electric vehicle and mobility trends - McKinsey & Company",
+              "content": "We look back at the top mobility sector trends in 2023, and how new trends in electric vehicles and autonomous driving will shape mobility in 2024 and beyond. ... China retained its position as the world's e-mobility hot spot in 2023, with the highest penetration rates (Exhibit 3): one out of every four cars in China in 2023 was a BEV.",
+              "publishedDate": "2024-03-12T00:00:00",
+              "thumbnail": "",
+              "engine": "brave",
+              "template": "default.html",
+              "parsed_url": [
+                "https",
+                "www.mckinsey.com",
+                "/industries/automotive-and-assembly/our-insights/spotlight-on-mobility-trends",
+                "",
+                "",
+                ""
+              ],
+              "img_src": "",
+              "priority": "",
+              "engines": [
+                "startpage",
+                "duckduckgo",
+                "brave",
+                "google"
+              ],
+              "positions": [
+                11,
+                1,
+                1,
+                1
+              ],
+              "score": 12.363636363636363,
+              "category": "general"
+            },
+            {
+              "url": "https://www.powertodrive.de/market-trends/e-mobility-global-comparison-2025",
+              "title": "E-Mobility 2025: Germany in global comparison - Power2Drive Europe",
+              "content": "Market Trend – April 22, 2025. In a global comparison of the market ... In a global comparison of the market ramp-up of e-mobility, Germany stands out with ...",
+              "thumbnail": "",
+              "engine": "google",
+              "template": "default.html",
+              "parsed_url": [
+                "https",
+                "www.powertodrive.de",
+                "/market-trends/e-mobility-global-comparison-2025",
+                "",
+                "",
+                ""
+              ],
+              "img_src": "",
+              "priority": "",
+              "engines": [
+                "startpage",
+                "google"
+              ],
+              "positions": [
+                2,
+                2
+              ],
+              "score": 2,
+              "category": "general",
+              "publishedDate": null
+            },
+            {
+              "url": "https://slocat.net/e-mobility/",
+              "title": "E-Mobility Trends and Targets - SLOCAT",
+              "content": "SLOCAT E-Mobility Trends and Targets Database. SLOCAT developed this database, which tracks the announced targets of countries, regions, cities, companies and vehicle manufacturers to show their growing ambition to scale up e-mobility (cars, taxis, trucks, two/three-wheelers and others). The database serves as a central hub for policy makers ...",
+              "publishedDate": "2022-06-08T00:00:00",
+              "thumbnail": "",
+              "engine": "brave",
+              "template": "default.html",
+              "parsed_url": [
+                "https",
+                "slocat.net",
+                "/e-mobility/",
+                "",
+                "",
+                ""
+              ],
+              "img_src": "",
+              "priority": "",
+              "engines": [
+                "duckduckgo",
+                "brave"
+              ],
+              "positions": [
+                2,
+                6
+              ],
+              "score": 1.3333333333333333,
+              "category": "general"
+            },
+            {
+              "url": "https://www.bmwk-energiewende.de/EWD/Redaktion/EN/Newsletter/2021/08/Meldung/direkt-answers-infographic.html",
+              "title": "The trend towards electric mobility - BMWK Newsletter Energiewende",
+              "content": "The trend towards electric mobility. The objective is to have more electric vehicles on German roads, so as to make the transport sector more climate-friendly.",
+              "thumbnail": "",
+              "engine": "google",
+              "template": "default.html",
+              "parsed_url": [
+                "https",
+                "www.bmwk-energiewende.de",
+                "/EWD/Redaktion/EN/Newsletter/2021/08/Meldung/direkt-answers-infographic.html",
+                "",
+                "",
+                ""
+              ],
+              "img_src": "",
+              "priority": "",
+              "engines": [
+                "startpage",
+                "google"
+              ],
+              "positions": [
+                5,
+                3
+              ],
+              "score": 1.0666666666666667,
+              "category": "general",
+              "publishedDate": null
+            },
+            {
+              "url": "https://www.greencitytimes.com/e-mobility-trends/",
+              "title": "E-mobility Trends - Decarbonizing Transit | Green City Times",
+              "content": "E-mobility is a term that describes ... charged with power from the grid). E-mobility includes electric cars, electric three-wheelers, e-bikes, e-mopeds, and electric scooters, as well as electric buses, trams, and trains. These trends in mobility are helping to decarbonize ...",
+              "publishedDate": "2023-09-15T00:00:00",
+              "thumbnail": "",
+              "engine": "brave",
+              "template": "default.html",
+              "parsed_url": [
+                "https",
+                "www.greencitytimes.com",
+                "/e-mobility-trends/",
+                "",
+                "",
+                ""
+              ],
+              "img_src": "",
+              "priority": "",
+              "engines": [
+                "brave"
+              ],
+              "positions": [
+                1
+              ],
+              "score": 1,
+              "category": "general"
+            },
+            {
+              "url": "https://www.iea.org/reports/global-ev-outlook-2024",
+              "title": "Global EV Outlook 2024 – Analysis - IEA",
+              "content": "The Global EV Outlook is an annual ... electric mobility across the globe. It is developed with the support of members of the Electric Vehicles Initiative (EVI). Combining analysis of historical data with projections – now extended to 2035 – the report examines key areas of interest such as the deployment of electric vehicles and charging infrastructure, battery demand, investment trends, and related ...",
+              "publishedDate": "2024-04-23T00:00:00",
+              "thumbnail": "",
+              "engine": "brave",
+              "template": "default.html",
+              "parsed_url": [
+                "https",
+                "www.iea.org",
+                "/reports/global-ev-outlook-2024",
+                "",
+                "",
+                ""
+              ],
+              "img_src": "",
+              "priority": "",
+              "engines": [
+                "startpage",
+                "brave"
+              ],
+              "positions": [
+                10,
+                4
+              ],
+              "score": 0.7,
+              "category": "general"
+            },
+            {
+              "title": "Outlook for E-Mobility in 2025: Trends, Challenges, and Opportunities",
+              "url": "https://reev.com/en/outlook-for-e-mobility-in-2025/",
+              "content": "E-mobility is on the brink of another crucial year. 2025 will be a year of transformation - technologically and politically.The transition to sustainable mobility is gaining momentum, with governments and companies pushing forward.But what can we specifically expect in 2025?This article explores the key trends, challenges, and opportunities for e-mobility.. Political Framework: Driving E ...",
+              "engine": "duckduckgo",
+              "template": "default.html",
+              "parsed_url": [
+                "https",
+                "reev.com",
+                "/en/outlook-for-e-mobility-in-2025/",
+                "",
+                "",
+                ""
+              ],
+              "img_src": "",
+              "thumbnail": "",
+              "priority": "",
+              "engines": [
+                "startpage",
+                "duckduckgo"
+              ],
+              "positions": [
+                7,
+                5
+              ],
+              "score": 0.6857142857142857,
+              "category": "general",
+              "publishedDate": null
+            },
+            {
+              "url": "https://www.iodynamics.de/blog/7-trends-in-electromobility/",
+              "title": "7 trends in electromobility for 2023 - IO-Dynamics",
+              "content": "7 trends in electromobility for 2023 · 1. charging made easy: plug and charge · 2. Bidirectional charging: Exploiting potential · 3. Intelligent charging and fleet ...",
+              "thumbnail": "",
+              "engine": "google",
+              "template": "default.html",
+              "parsed_url": [
+                "https",
+                "www.iodynamics.de",
+                "/blog/7-trends-in-electromobility/",
+                "",
+                "",
+                ""
+              ],
+              "img_src": "",
+              "priority": "",
+              "engines": [
+                "startpage",
+                "google"
+              ],
+              "positions": [
+                7,
+                8
+              ],
+              "score": 0.5357142857142857,
+              "category": "general",
+              "publishedDate": null
+            },
+            {
+              "url": "https://www.eurelectric.org/news/exploring-the-flexibility-potential-of-e-mobility/",
+              "title": "Exploring the flexibility potential of e-mobility - Eurelectric",
+              "content": "14.03.2025 — Evolving geopolitical tensions and fierce economic competition with China are pushing Europe to advance its strategy on e-mobility.",
+              "thumbnail": "",
+              "engine": "google",
+              "template": "default.html",
+              "parsed_url": [
+                "https",
+                "www.eurelectric.org",
+                "/news/exploring-the-flexibility-potential-of-e-mobility/",
+                "",
+                "",
+                ""
+              ],
+              "img_src": "",
+              "priority": "",
+              "engines": [
+                "startpage",
+                "google"
+              ],
+              "positions": [
+                9,
+                7
+              ],
+              "score": 0.5079365079365079,
+              "category": "general",
+              "publishedDate": "2025-03-14T00:00:00"
+            },
+            {
+              "url": "https://www.startus-insights.com/innovators-guide/electric-mobility-trends/",
+              "title": "Top 8 Electric Mobility Trends in 2025 | StartUs Insights",
+              "content": "Based on the Electric Mobility Innovation Map, the Tree Map below illustrates the impact of the Top 8 Electric Mobility Trends in 2025. Startups and EV companies are spearheading the development of EV charging infrastructure to support the growing fleet of EVs, facilitating a widespread deployment of charging points (CPs).",
+              "publishedDate": "2024-08-27T00:00:00",
+              "thumbnail": "",
+              "engine": "brave",
+              "template": "default.html",
+              "parsed_url": [
+                "https",
+                "www.startus-insights.com",
+                "/innovators-guide/electric-mobility-trends/",
+                "",
+                "",
+                ""
+              ],
+              "img_src": "",
+              "priority": "",
+              "engines": [
+                "duckduckgo",
+                "brave"
+              ],
+              "positions": [
+                20,
+                5
+              ],
+              "score": 0.5,
+              "category": "general"
+            },
+            {
+              "title": "E-Mobility Trends - Discover Electric Mobility trends across the world",
+              "url": "https://emobilitytrends.com/",
+              "content": "December 1, 2024 December 1, 2024 E-Mobility Team Electric cars are celebrated for their eco-friendly benefits and lower operating costs, but many EV owners are surprised to learn that insuring an electric vehicle can cost more than insuring a gas-powered car.",
+              "engine": "duckduckgo",
+              "template": "default.html",
+              "parsed_url": [
+                "https",
+                "emobilitytrends.com",
+                "/",
+                "",
+                "",
+                ""
+              ],
+              "img_src": "",
+              "thumbnail": "",
+              "priority": "",
+              "engines": [
+                "duckduckgo"
+              ],
+              "positions": [
+                2
+              ],
+              "score": 0.5,
+              "category": "general"
+            },
+            {
+              "url": "https://www.iea.org/reports/global-ev-outlook-2024/outlook-for-electric-mobility",
+              "title": "Outlook for electric mobility – Global EV Outlook 2024 – Analysis - IEA",
+              "content": "Global electric light-duty vehicle sales are set to reach 40% in 2030 and almost 55% in 2035 based on current policy settings.",
+              "publishedDate": null,
+              "thumbnail": null,
+              "engine": "brave",
+              "template": "default.html",
+              "parsed_url": [
+                "https",
+                "www.iea.org",
+                "/reports/global-ev-outlook-2024/outlook-for-electric-mobility",
+                "",
+                "",
+                ""
+              ],
+              "img_src": "",
+              "priority": "",
+              "engines": [
+                "brave",
+                "google"
+              ],
+              "positions": [
+                15,
+                6
+              ],
+              "score": 0.4666666666666667,
+              "category": "general"
+            },
+            {
+              "url": "https://www.mckinsey.com/industries/automotive-and-assembly/our-insights/the-irresistible-momentum-behind-clean-electric-connected-mobility-four-key-trends",
+              "title": "The irresistible momentum behind clean, electric, connected mobility: Four key trends",
+              "content": "General Motors’ January announcement ... the momentum behind cleaner, software-enabled forms of mobility is powerful and seemingly unstoppable. What does this mean for companies and consumers? In this article, we’ll look at four trends that illustrate the way this new form of ...",
+              "publishedDate": "2021-04-06T00:00:00",
+              "thumbnail": "",
+              "engine": "brave",
+              "template": "default.html",
+              "parsed_url": [
+                "https",
+                "www.mckinsey.com",
+                "/industries/automotive-and-assembly/our-insights/the-irresistible-momentum-behind-clean-electric-connected-mobility-four-key-trends",
+                "",
+                "",
+                ""
+              ],
+              "img_src": "",
+              "priority": "",
+              "engines": [
+                "brave"
+              ],
+              "positions": [
+                3
+              ],
+              "score": 0.3333333333333333,
+              "category": "general"
+            },
+            {
+              "url": "https://www.zukunftsinstitut.de/zukunftsthemen/e-mobility-mischt-den-markt-auf",
+              "title": "E-Mobility mischt den Markt auf",
+              "content": "25.03.2024 — Neue Technologien wirbeln den Mobilitätsmarkt durcheinander – und schaffen einen neuen Zugang für angrenzende Branchen.",
+              "thumbnail": null,
+              "engine": "google",
+              "template": "default.html",
+              "parsed_url": [
+                "https",
+                "www.zukunftsinstitut.de",
+                "/zukunftsthemen/e-mobility-mischt-den-markt-auf",
+                "",
+                "",
+                ""
+              ],
+              "img_src": "",
+              "priority": "",
+              "engines": [
+                "google"
+              ],
+              "positions": [
+                3
+              ],
+              "score": 0.3333333333333333,
+              "category": "general"
+            },
+            {
+              "title": "Why the future involves e-mobility | McKinsey - McKinsey & Company",
+              "url": "https://www.mckinsey.com/industries/automotive-and-assembly/our-insights/why-the-automotive-future-is-electric",
+              "content": "The McKinsey Center for Future Mobility (MCFM) aims to help all stakeholders in the mobility ecosystem navigate the future by providing independent and integrated evidence about possible future mobility scenarios. Our view of trends are grounded in advanced multi-level driver based models that have been validated across industries and players.",
+              "engine": "duckduckgo",
+              "template": "default.html",
+              "parsed_url": [
+                "https",
+                "www.mckinsey.com",
+                "/industries/automotive-and-assembly/our-insights/why-the-automotive-future-is-electric",
+                "",
+                "",
+                ""
+              ],
+              "img_src": "",
+              "thumbnail": "",
+              "priority": "",
+              "engines": [
+                "duckduckgo"
+              ],
+              "positions": [
+                3
+              ],
+              "score": 0.3333333333333333,
+              "category": "general"
+            },
+            {
+              "url": "https://www.grandviewresearch.com/industry-analysis/electric-mobility-market",
+              "title": "Electric Mobility Market Size, Share & Trends Report, 2030",
+              "content": "The global electric mobility market size was estimated at USD 109.23 billion in 2022 and is expected to grow at a CAGR of 14.6% from 2023 to 2030.",
+              "publishedDate": null,
+              "thumbnail": "",
+              "engine": "brave",
+              "template": "default.html",
+              "parsed_url": [
+                "https",
+                "www.grandviewresearch.com",
+                "/industry-analysis/electric-mobility-market",
+                "",
+                "",
+                ""
+              ],
+              "img_src": "",
+              "priority": "",
+              "engines": [
+                "brave"
+              ],
+              "positions": [
+                4
+              ],
+              "score": 0.25,
+              "category": "general"
+            },
+            {
+              "url": "https://www.powertodrive.de/pressemeldung/elektromobilitaet-als-teil-der-energiewende",
+              "title": "Electric Mobility as Part of the German Energy Transition",
+              "content": "Electric mobility plays an important role in the German energy transition and in achieving Germany's climate targets. Accordingly, the German government has ...",
+              "thumbnail": null,
+              "engine": "google",
+              "template": "default.html",
+              "parsed_url": [
+                "https",
+                "www.powertodrive.de",
+                "/pressemeldung/elektromobilitaet-als-teil-der-energiewende",
+                "",
+                "",
+                ""
+              ],
+              "img_src": "",
+              "priority": "",
+              "engines": [
+                "google"
+              ],
+              "positions": [
+                4
+              ],
+              "score": 0.25,
+              "category": "general"
+            },
+            {
+              "title": "The future of mobility in 2035 | McKinsey - McKinsey & Company",
+              "url": "https://www.mckinsey.com/industries/automotive-and-assembly/our-insights/the-future-of-mobility-mobility-evolves",
+              "content": "New trends and technologies are emerging. Some new mobility trends and automotive technologies, especially leading-edge electric-vehicle (EV) batteries, frequently make the headlines. Others are emerging more quietly but could have an equally significant effect on future mobility, although some may not exert their full impact for several years.",
+              "engine": "duckduckgo",
+              "template": "default.html",
+              "parsed_url": [
+                "https",
+                "www.mckinsey.com",
+                "/industries/automotive-and-assembly/our-insights/the-future-of-mobility-mobility-evolves",
+                "",
+                "",
+                ""
+              ],
+              "img_src": "",
+              "thumbnail": "",
+              "priority": "",
+              "engines": [
+                "duckduckgo"
+              ],
+              "positions": [
+                4
+              ],
+              "score": 0.25,
+              "category": "general"
+            },
+            {
+              "url": "https://www.linkfluence.com/blog/e-mobility-trend-electric-car",
+              "title": "What Do Consumers Really Want in an Electric Car?",
+              "content": "2 weeks ago - Blog Topics: Sales & Media Intelligence, Media Relations, Social Listening, Social Media Management, Consumer Intelligence, Influencer Marketing, Data",
+              "publishedDate": null,
+              "thumbnail": "",
+              "engine": "brave",
+              "template": "default.html",
+              "parsed_url": [
+                "https",
+                "www.linkfluence.com",
+                "/blog/e-mobility-trend-electric-car",
+                "",
+                "",
+                ""
+              ],
+              "img_src": "",
+              "priority": "",
+              "engines": [
+                "brave"
+              ],
+              "positions": [
+                5
+              ],
+              "score": 0.2,
+              "category": "general"
+            },
+            {
+              "url": "https://www.prnewswire.com/news-releases/major-electric-vehicle--mobility-trends-of-2021-and-what-to-look-out-for-in-2022-301425377.html",
+              "title": "Major Electric Vehicle & Mobility Trends of 2021 and What to Look out for in 2022",
+              "content": "This means there is a requirement to keep cells at their optimal operating temperature, but also to provide fire protection materials in case of thermal runaway. A critical trend that will impact material suppliers in this space is the adoption of cell-to-pack technology.",
+              "publishedDate": "2021-11-16T00:00:00",
+              "thumbnail": "",
+              "engine": "brave",
+              "template": "default.html",
+              "parsed_url": [
+                "https",
+                "www.prnewswire.com",
+                "/news-releases/major-electric-vehicle--mobility-trends-of-2021-and-what-to-look-out-for-in-2022-301425377.html",
+                "",
+                "",
+                ""
+              ],
+              "img_src": "",
+              "priority": "",
+              "engines": [
+                "brave"
+              ],
+              "positions": [
+                6
+              ],
+              "score": 0.16666666666666666,
+              "category": "general"
+            },
+            {
+              "url": "https://powy.energy/en/news/10-trends-shaping-electric-mobility-in-2024/",
+              "title": "10 trends shaping electric mobility in 2024 - Powy Energy",
+              "content": "10 trends shaping electric mobility in 2024 · Increased sales of electric vehicles (EVs) · Development of charging infrastructure · Innovations ...",
+              "publishedDate": "2024-07-13T00:00:00",
+              "engine": "startpage",
+              "template": "default.html",
+              "parsed_url": [
+                "https",
+                "powy.energy",
+                "/en/news/10-trends-shaping-electric-mobility-in-2024/",
+                "",
+                "",
+                ""
+              ],
+              "img_src": "",
+              "thumbnail": "",
+              "priority": "",
+              "engines": [
+                "startpage"
+              ],
+              "positions": [
+                6
+              ],
+              "score": 0.16666666666666666,
+              "category": "general"
+            },
+            {
+              "url": "https://www.linkedin.com/pulse/e-mobility-trends-2022-evrecruiter?trk=pulse-article_more-articles_related-content-card",
+              "title": "E-Mobility Trends 2022",
+              "content": "In broad terms, users are able ... solutions. Another trend in E-mobility that will play a big role in how electric vehicles are used in 2022 is smart charging....",
+              "publishedDate": "2022-03-23T00:00:00",
+              "thumbnail": "",
+              "engine": "brave",
+              "template": "default.html",
+              "parsed_url": [
+                "https",
+                "www.linkedin.com",
+                "/pulse/e-mobility-trends-2022-evrecruiter",
+                "",
+                "trk=pulse-article_more-articles_related-content-card",
+                ""
+              ],
+              "img_src": "",
+              "priority": "",
+              "engines": [
+                "brave"
+              ],
+              "positions": [
+                7
+              ],
+              "score": 0.14285714285714285,
+              "category": "general"
+            },
+            {
+              "url": "https://www.wri.org/events/2022/3/global-perspective-emobility-trends-2022",
+              "title": "A Global Perspective on eMobility Trends in 2022 | World Resources Institute",
+              "content": "In this webinar, WRI’s e-mobility experts will highlight e-mobility developments from regions around the world and share how their work advances the e-mobility transition.",
+              "publishedDate": "2022-03-03T00:00:00",
+              "thumbnail": "",
+              "engine": "brave",
+              "template": "default.html",
+              "parsed_url": [
+                "https",
+                "www.wri.org",
+                "/events/2022/3/global-perspective-emobility-trends-2022",
+                "",
+                "",
+                ""
+              ],
+              "img_src": "",
+              "priority": "",
+              "engines": [
+                "brave"
+              ],
+              "positions": [
+                8
+              ],
+              "score": 0.125,
+              "category": "general"
+            },
+            {
+              "url": "https://www.mobilityhouse.com/de_de/knowledge-center/artikel/trends-elektromobilitaet-2024",
+              "title": "E-Mobilität: 2023 im Rückspiegel, 2024 in Aussicht",
+              "content": "28.11.2023 — 2024 stehen Neuerungen bevor, insbesondere im Bereich der Vereinfachung öffentlicher Ladevorgänge: Plug & Charge (dt: Anstecken und Laden) ...",
+              "thumbnail": null,
+              "engine": "google",
+              "template": "default.html",
+              "parsed_url": [
+                "https",
+                "www.mobilityhouse.com",
+                "/de_de/knowledge-center/artikel/trends-elektromobilitaet-2024",
+                "",
+                "",
+                ""
+              ],
+              "img_src": "",
+              "priority": "",
+              "engines": [
+                "google"
+              ],
+              "positions": [
+                8
+              ],
+              "score": 0.125,
+              "category": "general"
+            },
+            {
+              "title": "Electric Mobility (E-Mobility) Market Size, Share, Industry Forecast by ...",
+              "url": "https://www.emergenresearch.com/industry-report/e-mobility-market",
+              "content": "The global E-Mobility (Electric Mobility) market size reached USD 289 Billion in 2022 and is expected to reach USD 3,219 Billion in 2032 registering a CAGR of 27.2%. Discover the latest trends and analysis on the E-Mobility Market. Our report provides a comprehensive overview of the industry, including key players, market share, growth opportunities, and more.",
+              "engine": "duckduckgo",
+              "template": "default.html",
+              "parsed_url": [
+                "https",
+                "www.emergenresearch.com",
+                "/industry-report/e-mobility-market",
+                "",
+                "",
+                ""
+              ],
+              "img_src": "",
+              "thumbnail": "",
+              "priority": "",
+              "engines": [
+                "duckduckgo"
+              ],
+              "positions": [
+                8
+              ],
+              "score": 0.125,
+              "category": "general"
+            },
+            {
+              "url": "https://driivz.com/blog/ev-industry-trends/",
+              "title": "Top EV Charging Industry Trends in 2024 | Driivz",
+              "content": "Explore EV Charging industry trends in 2024 and adjacent industries entering the game. Discover how indirect revenues from EV charging impact their profits.",
+              "publishedDate": "2024-04-14T00:00:00",
+              "thumbnail": "",
+              "engine": "brave",
+              "template": "default.html",
+              "parsed_url": [
+                "https",
+                "driivz.com",
+                "/blog/ev-industry-trends/",
+                "",
+                "",
+                ""
+              ],
+              "img_src": "",
+              "priority": "",
+              "engines": [
+                "brave"
+              ],
+              "positions": [
+                9
+              ],
+              "score": 0.1111111111111111,
+              "category": "general"
+            },
+            {
+              "title": "Electric Mobility Market Trends - Fortune Business Insights",
+              "url": "https://www.fortunebusinessinsights.com/electric-mobility-market-106485",
+              "content": "For instance, incentives offered in Europe on EV purchases in 2023 have fueled the EV sales in the region and boosted the global e-mobility market. Moreover, shifting consumer preference from conventional to electric vehicle purchase due to environmental concern and strict emission norms worldwide has also influenced electric mobility market ...",
+              "engine": "duckduckgo",
+              "template": "default.html",
+              "parsed_url": [
+                "https",
+                "www.fortunebusinessinsights.com",
+                "/electric-mobility-market-106485",
+                "",
+                "",
+                ""
+              ],
+              "img_src": "",
+              "thumbnail": "",
+              "priority": "",
+              "engines": [
+                "duckduckgo"
+              ],
+              "positions": [
+                9
+              ],
+              "score": 0.1111111111111111,
+              "category": "general"
+            },
+            {
+              "url": "https://automotive.messefrankfurt.com/global/en/facts-figures/world-of-e-mobility-2024.html",
+              "title": "The world of e-mobility in 2024 - Gateway to Automotive",
+              "content": "It is one of the most exciting topics in the automotive industry: how is e-mobility faring? Where are electric cars doing well and where are ...",
+              "publishedDate": "2024-07-12T00:00:00",
+              "engine": "startpage",
+              "template": "default.html",
+              "parsed_url": [
+                "https",
+                "automotive.messefrankfurt.com",
+                "/global/en/facts-figures/world-of-e-mobility-2024.html",
+                "",
+                "",
+                ""
+              ],
+              "img_src": "",
+              "thumbnail": "",
+              "priority": "",
+              "engines": [
+                "startpage"
+              ],
+              "positions": [
+                9
+              ],
+              "score": 0.1111111111111111,
+              "category": "general"
+            },
+            {
+              "url": "https://ekoenergetyka.com/ev-generation-news/e-mobility-trend-or-the-future/",
+              "title": "E-Mobility: Trend or the Future?",
+              "content": "Is electric mobility just a passing trend, or is it truly shaping the future of transportation? In the latest episode of EV Generation, we dive into this ...",
+              "thumbnail": null,
+              "engine": "google",
+              "template": "default.html",
+              "parsed_url": [
+                "https",
+                "ekoenergetyka.com",
+                "/ev-generation-news/e-mobility-trend-or-the-future/",
+                "",
+                "",
+                ""
+              ],
+              "img_src": "",
+              "priority": "",
+              "engines": [
+                "google"
+              ],
+              "positions": [
+                10
+              ],
+              "score": 0.1,
+              "category": "general"
+            },
+            {
+              "title": "Electric Mobility in 2024: Emerging Trends and Innovations - Statzon",
+              "url": "https://statzon.com/insights/electric-mobility-trends-2024",
+              "content": "Insights Electric Vehicle E-Mobility E-Mobility Trends local_offer Share this article: As we step into 2024, major markets including Europe, the United States, and China will continue their steadfast transition to electric mobility, building upon the successful and steady acceleration witnessed in recent years. Other global markets are also ...",
+              "engine": "duckduckgo",
+              "template": "default.html",
+              "parsed_url": [
+                "https",
+                "statzon.com",
+                "/insights/electric-mobility-trends-2024",
+                "",
+                "",
+                ""
+              ],
+              "img_src": "",
+              "thumbnail": "",
+              "priority": "",
+              "engines": [
+                "duckduckgo"
+              ],
+              "positions": [
+                10
+              ],
+              "score": 0.1,
+              "category": "general"
+            },
+            {
+              "url": "https://electronica.de/en/trade-fair/focus-topics/automotive/",
+              "title": "Automotive trends at electronica 2024: a glimpse of the future",
+              "content": "Expanding the charging infrastructure: A ubiquitous charging network is critical to the adoption of electric mobility. Costs: The initial cost of electric ...",
+              "publishedDate": null,
+              "engine": "startpage",
+              "template": "default.html",
+              "parsed_url": [
+                "https",
+                "electronica.de",
+                "/en/trade-fair/focus-topics/automotive/",
+                "",
+                "",
+                ""
+              ],
+              "img_src": "",
+              "thumbnail": "",
+              "priority": "",
+              "engines": [
+                "startpage"
+              ],
+              "positions": [
+                10
+              ],
+              "score": 0.1,
+              "category": "general"
+            },
+            {
+              "url": "https://powy.energy/en/news/evolution-news/10-trends-shaping-electric-mobility-in-2024/",
+              "title": "10 trends shaping electric mobility in 2024",
+              "content": "According to the article 'Micromobility Trends: What's New in 2024?\" by Expand My Business, recent reports predict that the global market will reach $90 billion by the end of 2024. Cities are seeing an increase in the use of electric micro-mobility, with a 30 percent increase in major urban areas.",
+              "publishedDate": "2025-02-10T00:00:00",
+              "thumbnail": "",
+              "engine": "brave",
+              "template": "default.html",
+              "parsed_url": [
+                "https",
+                "powy.energy",
+                "/en/news/evolution-news/10-trends-shaping-electric-mobility-in-2024/",
+                "",
+                "",
+                ""
+              ],
+              "img_src": "",
+              "priority": "",
+              "engines": [
+                "brave"
+              ],
+              "positions": [
+                12
+              ],
+              "score": 0.08333333333333333,
+              "category": "general"
+            },
+            {
+              "url": "https://www.iea.org/reports/global-ev-outlook-2024/trends-in-electric-cars",
+              "title": "Trends in electric cars – Global EV Outlook 2024 – Analysis - IEA",
+              "content": "An equitable and inclusive transition to electric mobility, both within countries and at the global level, hinges on the successful launch of affordable EVs (including but not limited to electric cars). In this section, we use historic sales and price data for electric and ICE models around the world to examine the total cost of owning an electric car, price trends ...",
+              "publishedDate": null,
+              "thumbnail": "",
+              "engine": "brave",
+              "template": "default.html",
+              "parsed_url": [
+                "https",
+                "www.iea.org",
+                "/reports/global-ev-outlook-2024/trends-in-electric-cars",
+                "",
+                "",
+                ""
+              ],
+              "img_src": "",
+              "priority": "",
+              "engines": [
+                "brave"
+              ],
+              "positions": [
+                13
+              ],
+              "score": 0.07692307692307693,
+              "category": "general"
+            },
+            {
+              "url": "https://www.spglobal.com/automotive-insights/en/theme/electric-vehicle-industry",
+              "title": "Electric Vehicle Market | S&P Global",
+              "content": "We also examine the technological advancements that are shaping the future of electric mobility, from battery innovations to charging infrastructure developments. This vital information helps businesses navigate the transition to electric vehicles, enabling them to identify emerging trends and ...",
+              "publishedDate": null,
+              "thumbnail": "",
+              "engine": "brave",
+              "template": "default.html",
+              "parsed_url": [
+                "https",
+                "www.spglobal.com",
+                "/automotive-insights/en/theme/electric-vehicle-industry",
+                "",
+                "",
+                ""
+              ],
+              "img_src": "",
+              "priority": "",
+              "engines": [
+                "brave"
+              ],
+              "positions": [
+                14
+              ],
+              "score": 0.07142857142857142,
+              "category": "general"
+            },
+            {
+              "url": "https://evercharge.com/blog/2025-industry-trends-the-new-era-of-electric-mobility",
+              "title": "2025 industry trends: The new era of electric mobility",
+              "content": "Discover the top EV trends shaping 2025: expanding charging models, declining costs, increased comfort with ownership, emerging cottage industries, and utility-managed charging. Learn how these developments are driving the electric vehicle revolution forward.",
+              "publishedDate": "2025-02-25T00:00:00",
+              "thumbnail": "",
+              "engine": "brave",
+              "template": "default.html",
+              "parsed_url": [
+                "https",
+                "evercharge.com",
+                "/blog/2025-industry-trends-the-new-era-of-electric-mobility",
+                "",
+                "",
+                ""
+              ],
+              "img_src": "",
+              "priority": "",
+              "engines": [
+                "brave"
+              ],
+              "positions": [
+                16
+              ],
+              "score": 0.0625,
+              "category": "general"
+            },
+            {
+              "url": "https://www.greenlancer.com/post/ev-market-trends",
+              "title": "Electric Vehicle (EV) Trends In 2025",
+              "content": "Read on to learn about electric vehicle trends for 2025 and how they're shaping the future of the EV industry in the coming year. The electric vehicle market has experienced remarkable growth over the past decade, transitioning from a niche segment to a pivotal player in the automotive industry. This expansion is fueled by technological advancements, government incentives, and a shift in consumer preferences toward innovative and sustainable mobility ...",
+              "publishedDate": "2024-12-30T00:00:00",
+              "thumbnail": "",
+              "engine": "brave",
+              "template": "default.html",
+              "parsed_url": [
+                "https",
+                "www.greenlancer.com",
+                "/post/ev-market-trends",
+                "",
+                "",
+                ""
+              ],
+              "img_src": "",
+              "priority": "",
+              "engines": [
+                "brave"
+              ],
+              "positions": [
+                17
+              ],
+              "score": 0.058823529411764705,
+              "category": "general"
+            },
+            {
+              "url": "https://www.futurebridge.com/industry/perspectives-mobility/the-future-of-mobility-key-trends-shaping-2024-and-beyond-in-electric-autonomous-and-smart-transportation/",
+              "title": "The Future of Mobility: Key Trends Shaping 2024 and Beyond in Electric, Autonomous, and Smart Transportation",
+              "content": "Shared Mobility: The shared mobility model will continue to disrupt traditional ownership, as shared electric scooters, bikes, and ride-hailing services expand their reach. This trend towards shared transportation will reduce congestion and enhance the efficiency of urban mobility.",
+              "publishedDate": "2025-02-17T00:00:00",
+              "thumbnail": "",
+              "engine": "brave",
+              "template": "default.html",
+              "parsed_url": [
+                "https",
+                "www.futurebridge.com",
+                "/industry/perspectives-mobility/the-future-of-mobility-key-trends-shaping-2024-and-beyond-in-electric-autonomous-and-smart-transportation/",
+                "",
+                "",
+                ""
+              ],
+              "img_src": "",
+              "priority": "",
+              "engines": [
+                "brave"
+              ],
+              "positions": [
+                18
+              ],
+              "score": 0.05555555555555555,
+              "category": "general"
+            },
+            {
+              "url": "https://www.avenga.com/magazine/mobility-industry-trends-and-insights/",
+              "title": "Mobility Trends 2025: Shaping The Future Of The Mobility Industry – Avenga",
+              "content": "And we pose a hypothesis: that the selected mobility trends and insights will be the key drivers of the mobility market in 2025 and beyond. In this article, we discuss new technologies, consumer behavior, and smart investments. We explore data from leading voices and industry experts.",
+              "publishedDate": "2025-02-26T00:00:00",
+              "thumbnail": "",
+              "engine": "brave",
+              "template": "default.html",
+              "parsed_url": [
+                "https",
+                "www.avenga.com",
+                "/magazine/mobility-industry-trends-and-insights/",
+                "",
+                "",
+                ""
+              ],
+              "img_src": "",
+              "priority": "",
+              "engines": [
+                "brave"
+              ],
+              "positions": [
+                19
+              ],
+              "score": 0.05263157894736842,
+              "category": "general"
+            }
+          ],
+          "answers": [],
+          "corrections": [],
+          "infoboxes": [],
+          "suggestions": [
+            "BloombergNEF electric vehicle Outlook",
+            "Automotive trends 2024",
+            "Electromobility Report 2024",
+            "Future of mobility",
+            "S&P Global Mobility",
+            "E mobility statistics",
+            "Electric vehicles Europe",
+            "Europe's economic potential in the shift to electric vehicles"
+          ],
+          "unresponsive_engines": [
+            [
+              "qwant",
+              "Suspended: CAPTCHA"
+            ]
+          ]
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Loop Over Items": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "HTTP Request8",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Default Data Loader": {
+      "ai_document": [
+        [
+          {
+            "node": "Supabase Vector Store",
+            "type": "ai_document",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Character Text Splitter": {
+      "ai_textSplitter": [
+        [
+          {
+            "node": "Default Data Loader",
+            "type": "ai_textSplitter",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase Vector Store": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out1": {
+      "main": [
+        [
+          {
+            "node": "Supabase Vector Store",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Ollama": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Supabase Vector Store",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Get different search variations",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "searxng": {
+      "main": [
+        [
+          {
+            "node": "Split Out3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model2": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Get different search variations",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out2": {
+      "main": [
+        [
+          {
+            "node": "searxng",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out3": {
+      "main": [
+        [
+          {
+            "node": "extract url and query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set search request": {
+      "main": [
+        [
+          {
+            "node": "Get different search variations",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get different search variations": {
+      "main": [
+        [
+          {
+            "node": "Split Out2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "extract url and query": {
+      "main": [
+        [
+          {
+            "node": "Limit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request8": {
+      "main": [
+        [
+          {
+            "node": "Split Out1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Vector Store Retriever": {
+      "ai_retriever": [
+        [
+          {
+            "node": "Question and Answer Chain",
+            "type": "ai_retriever",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase Vector Store4": {
+      "ai_vectorStore": [
+        [
+          {
+            "node": "Vector Store Retriever",
+            "type": "ai_vectorStore",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Ollama3": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Supabase Vector Store4",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model5": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Question and Answer Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Limit": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Question and Answer Chain": {
+      "main": [
+        [
+          {
+            "node": "Information Extractor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Theme Question": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Set search request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger2": {
+      "main": [
+        [
+          {
+            "node": "Theme Question2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Theme Question2": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "search_docs2": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser1": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Vector Store Retriever1": {
+      "ai_retriever": [
+        [
+          {
+            "node": "Question and Answer Chain1",
+            "type": "ai_retriever",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase Vector Store5": {
+      "ai_vectorStore": [
+        [
+          {
+            "node": "Vector Store Retriever1",
+            "type": "ai_vectorStore",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Ollama4": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Supabase Vector Store5",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model6": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Question and Answer Chain1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "search_docs1": {
+      "main": [
+        [
+          {
+            "node": "Question and Answer Chain1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Question and Answer Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model4": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Information Extractor",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Information Extractor": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items1": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Theme Question",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields1": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Aggregate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model7": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain1": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser2": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Basic LLM Chain1",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items2": {
+      "main": [
+        [
+          {
+            "node": "Replace Me",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Supabase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1d087d5c-eaf9-474e-a086-b88913f12f4e",
+  "meta": {
+    "instanceId": "979b60d45b904237fb8c107add9add6305cd6e13708f6a1f8205a62dbeccc713"
+  },
+  "id": "D6TvjN8wwOChS78R",
+  "tags": []
+}

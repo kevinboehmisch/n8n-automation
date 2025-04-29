@@ -1,0 +1,1452 @@
+{
+  "name": "crawl4 ai",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "9800c356-e464-446b-a52c-545297c8b641",
+      "name": "When clicking ‘Test workflow’",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -1680,
+        1180
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "2e66873a-c0a0-44d3-83e9-6b993428aa44",
+      "name": "Loop Over Items",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        280,
+        1180
+      ]
+    },
+    {
+      "parameters": {
+        "jsonMode": "expressionData",
+        "jsonData": "={{ $('HTTP Request8').item.json.results[0].markdown }}",
+        "options": {
+          "metadata": {
+            "metadataValues": [
+              {
+                "name": "url",
+                "value": "={{ $('HTTP Request8').item.json.results[0].url }}"
+              },
+              {
+                "name": "query",
+                "value": "={{ $('extract url and query').item.json.query }}"
+              },
+              {}
+            ]
+          }
+        }
+      },
+      "id": "af4a8f64-e866-4f13-8d95-02ae647bbb38",
+      "name": "Default Data Loader",
+      "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+      "typeVersion": 1,
+      "position": [
+        1400,
+        1460
+      ]
+    },
+    {
+      "parameters": {
+        "chunkSize": 700,
+        "chunkOverlap": 100
+      },
+      "id": "4d7d1fa9-08ed-4a08-b733-97c84899d1f2",
+      "name": "Character Text Splitter",
+      "type": "@n8n/n8n-nodes-langchain.textSplitterCharacterTextSplitter",
+      "typeVersion": 1,
+      "position": [
+        1540,
+        1600
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "insert",
+        "tableName": {
+          "__rl": true,
+          "value": "documents",
+          "mode": "list",
+          "cachedResultName": "documents"
+        },
+        "options": {
+          "queryName": "match_documents"
+        }
+      },
+      "id": "effd12a0-b7fe-442b-a3b3-ccbe931c4106",
+      "name": "Supabase Vector Store",
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1,
+      "position": [
+        1300,
+        1200
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "YGLWNb69GyznHjna",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## 1.1 Set the search parameters\n\nIn the first step the search parameters can be set.\nThe LLM will automatically generate different search request variations\n\n- use **Set search request** to set the search parameter\n- you can prompt the amount of variations in the **Get different search variations** node change the amount:  `1–2 Strings` to your liking\n\n",
+        "height": 234,
+        "width": 590,
+        "color": 7
+      },
+      "id": "b5a6ca6f-01dd-4f07-a570-4cd08bc6b4e0",
+      "name": "Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -1680,
+        900
+      ]
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "results[0].markdown",
+        "options": {
+          "destinationFieldName": "documents"
+        }
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        740,
+        1200
+      ],
+      "id": "686f4f2c-adc4-44b3-b4e1-83afd7752c95",
+      "name": "Split Out1"
+    },
+    {
+      "parameters": {
+        "model": "mxbai-embed-large:latest"
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOllama",
+      "typeVersion": 1,
+      "position": [
+        1220,
+        1460
+      ],
+      "id": "b4dbcaa5-8677-4a8a-a58b-36d7085dfaca",
+      "name": "Embeddings Ollama",
+      "credentials": {
+        "ollamaApi": {
+          "id": "1m08PFBJMBX5Y9Dk",
+          "name": "Ollama account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"variations\": {\n      \"type\": \"array\",\n      \"items\": { \"type\": \"string\" }\n    }\n  },\n  \"required\": [\"variations\"]\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.2,
+      "position": [
+        -1120,
+        1360
+      ],
+      "id": "51a760e1-82e4-4f1a-86c8-c857ff0b8cce",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "url": "http://127.0.0.1:8080/search",
+        "sendQuery": true,
+        "specifyQuery": "=keypair",
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "=q",
+              "value": "={{ $json.variations }}"
+            },
+            {
+              "name": "format",
+              "value": "json"
+            }
+          ]
+        },
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 1
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -580,
+        1180
+      ],
+      "id": "88256f43-e936-403a-a92a-32b74aeaa71d",
+      "name": "searxng"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.0-flash-001",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -1320,
+        1360
+      ],
+      "id": "9a82a3c2-e254-456c-8ad8-9ea00902c690",
+      "name": "Google Gemini Chat Model2",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "OdQ18mX2mzuohqoa",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "output.variations",
+        "options": {
+          "destinationFieldName": "variations"
+        }
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        -980,
+        1180
+      ],
+      "id": "a74618c5-1308-4bd2-aaae-02c8e909f8cd",
+      "name": "Split Out2"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "results",
+        "include": "selectedOtherFields",
+        "fieldsToInclude": "query",
+        "options": {
+          "destinationFieldName": "results"
+        }
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        -400,
+        1180
+      ],
+      "id": "d5bd650f-9cd0-4d62-a984-9cecc3d74ebd",
+      "name": "Split Out3"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "14facf3f-b95f-43db-8ffa-cf3ded5ba5e0",
+              "name": "topic",
+              "value": "e-mobility trends",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1500,
+        1180
+      ],
+      "id": "0bce2b72-154d-49c9-9af2-f258657b990e",
+      "name": "Set search request"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Du bist ein Assistant, der mir hilft, für eine Suchanfrage alle sinnvollen Varianten (Synonyme, englische/ deutsche Schreibweisen, Zusammen‑/Getrenntschreibung) auszuspielen. \nEingabe: ein Thema {{ $json.topic }}. \nAusgabe: **nur** ein gültiges JSON‑Objekt mit genau einem Feld \"variations\", das eine Liste von 1–2 Strings enthält.\nBeispiel‑Schema:\n{\n  \"type\": \"object\",\n  \"properties\": {\n    \"variations\": {\n      \"type\": \"array\",\n      \"items\": { \"type\": \"string\" }\n    }\n  },\n  \"required\": [\"variations\"]\n}\n\n**Keine** zusätzlichen Erklärungen oder Floskeln, **nur** das JSON.\n",
+        "hasOutputParser": true
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.6,
+      "position": [
+        -1320,
+        1180
+      ],
+      "id": "f208cc0b-5066-4b62-b9ec-f87d6899b4a8",
+      "name": "Get different search variations"
+    },
+    {
+      "parameters": {
+        "content": "## 1.2 Search for URLs with Searxng\n\nIt is necessary to run the searxng docker: https://github.com/searxng/searxng-docker\nto run on windows you also need to run the docker desktop app.\n\n1. edit the settings.yml:\n\n```\nuse_default_settings: true\n\nserver:\n  # change this key\n  secret_key: \"test\"\n  # disable limiter, otherwise problems will occure \n  limiter: false\n  public_instance: false\n\n# load the default json endpoint (set per default, just to make sure)\nsearch:\n  formats:\n    - html\n    - json\n\n# DOI‑Resolver, for scientific papers\ndoi_resolvers:\n  oadoi.org:   'https://oadoi.org/'\n  doi.org:     'https://doi.org/'\ndefault_doi_resolver: 'oadoi.org'\n```\n\n2. in the searxng root terminal run docker compose up \n3. set the limit how many websites you want to search",
+        "height": 614,
+        "width": 670,
+        "color": 7
+      },
+      "id": "42104354-2343-454e-b48d-f4e25206b2a2",
+      "name": "Sticky Note2",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -580,
+        1420
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c9aa5a9e-fffe-4cca-bd02-7c15b114f5d5",
+              "name": "results.url",
+              "value": "={{ $json.results.url }}",
+              "type": "string"
+            },
+            {
+              "id": "076427e6-c2cd-43f5-ba8b-3abc39fc491b",
+              "name": "query",
+              "value": "={{ $json.query }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -220,
+        1180
+      ],
+      "id": "e7967a97-c8cd-4b99-9734-78ba637e6968",
+      "name": "extract url and query"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:11235/crawl",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"urls\": [\"{{ $json.results.url }}\"],\n  \"priority\": 10\n}\n",
+        "options": {}
+      },
+      "id": "0668123a-f6f7-411c-b5a5-7c74e72772be",
+      "name": "HTTP Request8",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        560,
+        1200
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 1.3 Scrape the website with Crawl4ai\n\n1. Download the docker files: https://docs.crawl4ai.com/core/docker-deployment/\n2. follow the steps as shown in the documentation for local development and build and run locally with `docker compose up --build -d`\n\n\n",
+        "height": 194,
+        "width": 690,
+        "color": 7
+      },
+      "id": "99024475-d9a5-466b-929d-6b8dc0608152",
+      "name": "Sticky Note3",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        240,
+        1420
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 1.4 Store the websites in the Vector Database\n\n1. To store the data of the webiste in a vector database create a supabase account and create a projekt in the sql editor copy and run the following code, specified for embedding with ollama:\n\n```\n-- 1) pgvector-Extension (falls nicht bereits aktiv)\nCREATE EXTENSION IF NOT EXISTS vector;\n\n-- 2) Neue Tabelle mit 1024-dimensionalem Embedding\nCREATE TABLE documents (\n  id        bigserial PRIMARY KEY,\n  content   text,\n  metadata  jsonb,\n  embedding vector(1024)\n);\n\n-- 3) IVFFlat-Index für schnelle Ähnlichkeitssuche\nCREATE INDEX ON documents\nUSING ivfflat (embedding vector_l2_ops)\nWITH (lists = 100);\n\n-- 4) Funktion für 1024-dim-Vektoren anlegen\nCREATE OR REPLACE FUNCTION match_documents (\n  query_embedding vector(1024),\n  match_count    int      DEFAULT NULL,\n  filter         jsonb    DEFAULT '{}'\n) RETURNS TABLE (\n  id         bigint,\n  content    text,\n  metadata   jsonb,\n  similarity float\n)\nLANGUAGE plpgsql\nAS $$\nBEGIN\n  RETURN QUERY\n    SELECT\n      docs.id        AS id,\n      docs.content   AS content,\n      docs.metadata  AS metadata,\n      1 - (docs.embedding <=> query_embedding) AS similarity\n    FROM documents AS docs\n    WHERE docs.metadata @> filter\n    ORDER BY docs.embedding <=> query_embedding\n    LIMIT match_count;\nEND;\n$$;\n\n```\n\n2. Pull `ollama pull mxbai-embed-large:latest` and make sure the ollama server is already running with `ollana serve`\n\n",
+        "height": 954,
+        "width": 690,
+        "color": 7
+      },
+      "id": "1c5a9d2a-8c92-4034-a6c0-2f08d1a17dc0",
+      "name": "Sticky Note7",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1720,
+        1200
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "Beantworte diese Frage mit den 10 besten Vektor-DB-Treffern und liefere eine wissenschaftlich fundierte Analyse:\n\nWelche Trends sind für E-Mobilität in Deutschland in den nächsten 40 Jahren relevant?\n",
+        "options": {
+          "systemPromptTemplate": "=Du bist Research-Assistant™, Dr.-Level in E-Mobilität.\nNutze ausschließlich diesen Kontext:\n\n{context}\n\nBeantworte dann die Frage:\n\n{{ $json.question }}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainRetrievalQa",
+      "typeVersion": 1.5,
+      "position": [
+        -1220,
+        2180
+      ],
+      "id": "d6204b6e-9dc4-434d-9f3d-71b005fe2385",
+      "name": "Question and Answer Chain"
+    },
+    {
+      "parameters": {
+        "topK": 20
+      },
+      "type": "@n8n/n8n-nodes-langchain.retrieverVectorStore",
+      "typeVersion": 1,
+      "position": [
+        -1080,
+        2400
+      ],
+      "id": "397b624a-41a2-42ac-958d-709b2a22ec4f",
+      "name": "Vector Store Retriever"
+    },
+    {
+      "parameters": {
+        "tableName": {
+          "__rl": true,
+          "value": "documents",
+          "mode": "list",
+          "cachedResultName": "documents"
+        },
+        "options": {
+          "queryName": "match_documents"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1.1,
+      "position": [
+        -1040,
+        2600
+      ],
+      "id": "0735c115-b535-45f3-915c-8db9045d76a6",
+      "name": "Supabase Vector Store4",
+      "credentials": {
+        "supabaseApi": {
+          "id": "YGLWNb69GyznHjna",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "mxbai-embed-large:latest"
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOllama",
+      "typeVersion": 1,
+      "position": [
+        -1120,
+        2800
+      ],
+      "id": "b203d676-4225-4401-bdc8-5eb591baac7c",
+      "name": "Embeddings Ollama3",
+      "credentials": {
+        "ollamaApi": {
+          "id": "1m08PFBJMBX5Y9Dk",
+          "name": "Ollama account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.0-flash-001",
+        "options": {
+          "temperature": 0.2
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -1320,
+        2400
+      ],
+      "id": "ca1078d6-06de-457d-b5a5-acaa9815272e",
+      "name": "Google Gemini Chat Model5",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "OdQ18mX2mzuohqoa",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "maxItems": 100
+      },
+      "type": "n8n-nodes-base.limit",
+      "typeVersion": 1,
+      "position": [
+        -40,
+        1180
+      ],
+      "id": "2050262c-9fed-4565-b55d-80345b41dd72",
+      "name": "Limit"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "00eb5335-583c-4756-aa39-6e79701b8495",
+              "name": "question",
+              "value": " Welche Trends sind für E-Mobilität in Deutschland in den nächsten 40 Jahren relevant?",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1460,
+        2180
+      ],
+      "id": "2a0be3f5-6bb7-4d2f-86d3-d93d59f9a9be",
+      "name": "Theme Question"
+    },
+    {
+      "parameters": {
+        "content": "## 1. Get and store data for topic: e-mobility\n\nThis is the workflow just to get the data and store it.\nAnalyzation will be done in the 2. workflow\n\n",
+        "height": 140,
+        "width": 490,
+        "color": 4
+      },
+      "id": "e17d2e2c-4be5-4db2-b585-07c76eab8abf",
+      "name": "Sticky Note8",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -2240,
+        1180
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 1. Set the analysing question and rank the best data\n\n- use **Theme Question** to edit the input question\n- Number of results by the Vector Store can be set in the **Vector Store Retreiver** Node\n\n`muss denke ich mit agent verbessert werden der als tool das komplette hier hat, somit lassen sich ausführlichere analysen erstellen und mehrmaliges aufrufen wird möglich ähnlich wie reasoning bei chatgpt das mehrmals durchiteriert\n`",
+        "height": 274,
+        "width": 590,
+        "color": 7
+      },
+      "id": "aa973e9c-dffa-4f1f-81fd-f3b0b1d9dae3",
+      "name": "Sticky Note9",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -1660,
+        1840
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {}
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -1660,
+        2180
+      ],
+      "id": "9e8c889b-019d-4e5d-9565-b7a297ad64e8",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "content": "## 2. Analyze the data\n\nThis is the workflow is necessary for the data analyzation. Simple with just one node\n\n\n",
+        "height": 140,
+        "width": 490,
+        "color": 5
+      },
+      "id": "2d7ba843-c34d-42b2-ac20-92287d380271",
+      "name": "Sticky Note10",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -2240,
+        1840
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 2. Analyze the data with an AI Agent\n\nThis is the workflow is necessary for the data analyzation, implemented with an AI Agent who calls a sub-workflow\n\n\n",
+        "height": 140,
+        "width": 490,
+        "color": 5
+      },
+      "id": "33b07640-987b-459c-8a86-ff7a48e8a9e9",
+      "name": "Sticky Note11",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -2220,
+        3060
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 3. Sub-workflow\n\nThis is the sub-workflow which gets the RAG Data\n",
+        "height": 140,
+        "width": 490,
+        "color": 6
+      },
+      "id": "9320eedf-a03e-4050-a9a8-741da58dcaf0",
+      "name": "Sticky Note12",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -2220,
+        3620
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Basierend auf den vorliegenden Dokumenten und deinem Expertenwissen, beantworte diese Frage:\n\n{{ $json.question }}\n\nGib mir die Antwort als JSON-Array zurück.\n",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "Du bist Research-Assistant™, Dr.-Level in E-Mobilität.  \nWenn Du Kontext brauchst, rufe **search_docs(query, 10)** auf. Du erhältst ein Array von 10 Dokumenten, jedes mit mindestens diesen Feldern:\n- url     (string)\n- title   (string)\n- snippet (string – kurzer Auszug)\n\nArbeite so:\n\n1. Rufe **search_docs({{ $json.parameters.query }}, 10)** auf (schreibe im Stream-of-Thought: „I will call search_docs because…“).  \n2. Ordne jedem der 10 Treffer einen eigenen Trend zu.  \n3. Für jedes Ergebnis baue ein JSON-Objekt mit diesen Feldern:\n   - **uebertheme**: immer „E-Mobilität“  \n   - **theme**: kurzer Trend-Name (z. B. „Plug and Charge“)  \n   - **url**: exakte URL aus dem RAG-Treffer  \n   - **analysis**: 2–3 Sätze, die erklären, **warum gerade dieses Dokument** den Trend untermauert (verweise auf Title oder Snippet)  \n   - **summary**: 1–2 Sätze prägnanter Zusammenfassung des Dokuments  \n   - **ranking**: Position 1–10 entsprechend Relevanz (1 = höchst relevant)  \n   - **date**: heutiges Datum im Format YYYY-MM-DD\n\n4. Gib **nur** ein JSON-Array mit genau 10 solchen Objekten zurück – sonst nichts.\n",
+          "maxIterations": 10
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.9,
+      "position": [
+        -1200,
+        3060
+      ],
+      "id": "03c1a13c-7c67-4273-91de-071f03b35f77",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.0-flash-001",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -1260,
+        3280
+      ],
+      "id": "1d474f31-6daa-419a-a5ba-12219cf6f5a7",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "OdQ18mX2mzuohqoa",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {}
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -1640,
+        3060
+      ],
+      "id": "83fa0089-6c65-4214-835d-96238efe447f",
+      "name": "Schedule Trigger2"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "00eb5335-583c-4756-aa39-6e79701b8495",
+              "name": "question",
+              "value": " Welche Trends sind für E-Mobilität in Deutschland in den nächsten 40 Jahren relevant?",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1420,
+        3060
+      ],
+      "id": "108d6b05-dc6f-46de-bf2f-905db10c9ceb",
+      "name": "Theme Question2"
+    },
+    {
+      "parameters": {
+        "name": "search_docs",
+        "description": "search the vector data base to answer the question.",
+        "workflowId": {
+          "__rl": true,
+          "value": "0kjMhRTU8aA2NSAb",
+          "mode": "list",
+          "cachedResultName": "search_docs"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "name": "search_docs",
+            "description": "Search the vector database for semantically similar documents",
+            "parameters": "={\n  \"query\": \"{{ $fromAI('query', '', 'string') }}\"\n}\n"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "name",
+              "displayName": "name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "description",
+              "displayName": "description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "parameters",
+              "displayName": "parameters",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "object",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.1,
+      "position": [
+        -1100,
+        3280
+      ],
+      "id": "6c752f83-a38d-436f-ab77-e8ff30cf8d70",
+      "name": "search_docs2"
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "[\n  {\n    \"uebertheme\": \"E-Mobilität\",\n    \"theme\": \"Plug and Charge\",\n    \"url\": \"https://goingelectric.de/plug-and-charge-pilotprojekt\",\n    \"analysis\": \"Dieses Pilotprojekt beschreibt im Detail, wie ISO 15118 die Ladeauthentifizierung automatisiert – besonders interessant sind die Feldtests in München und Berlin, die im Artikel erläutert werden.\",\n    \"summary\": \"Plug and Charge ermöglicht das automatische Starten und Abrechnen von Ladevorgängen ohne zusätzliche Hardware oder App.\",\n    \"ranking\": 1,\n    \"date\": \"2025-04-25\"\n  },\n  {\n    \"uebertheme\": \"E-Mobilität\",\n    \"theme\": \"Bidirektionales Laden\",\n    \"url\": \"https://bdew.de/v2g-studie-2024\",\n    \"analysis\": \"Die BDEW-Studie zeigt anhand von Simulationen für das Berliner Netz, wie V2G bis zu 15 % Spitzenlast abfedern kann – interessant sind die Methodik und die konkreten Zahlen zur Netzstabilität.\",\n    \"summary\": \"Bidirektionales Laden erlaubt es E-Autos, Strom ins Netz zurückzuspeisen und so Netzschwankungen auszugleichen.\",\n    \"ranking\": 2,\n    \"date\": \"2025-04-25\"\n  }\n]\n"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.2,
+      "position": [
+        -940,
+        3280
+      ],
+      "id": "b8a276c7-0c85-4f78-82b1-4de976f815f9",
+      "name": "Structured Output Parser1"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.question }}",
+        "options": {
+          "systemMessage": "Du bist Research-Assistant™, Dr.-Level in E-Mobilität.  \nDu hast Zugriff auf ein Tool „search_docs(query, k)“, das dynamisch die Vektor-DB abfragt.  \n– Rufe es auf, wann immer Du weiteren Kontext brauchst.  \n– Entscheide selbst, ob k=5, 10, 20 oder mehr nötig sind.  \n– Führe Deine Überlegungen transparent im Stream-of-Thought („I will call search_docs because…“).  \n\n",
+          "maxIterations": 10
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.9,
+      "position": [
+        60,
+        3060
+      ],
+      "id": "7e0f9050-dc72-481d-aed0-7d8235ef80f5",
+      "name": "AI Agent1"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.0-flash-001",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        0,
+        3280
+      ],
+      "id": "d434ab51-3e61-4a2c-82b7-586431255d53",
+      "name": "Google Gemini Chat Model3",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "OdQ18mX2mzuohqoa",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {}
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -380,
+        3060
+      ],
+      "id": "92b2b094-53c2-43c8-ba0b-a1c956c3aebb",
+      "name": "Schedule Trigger1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "00eb5335-583c-4756-aa39-6e79701b8495",
+              "name": "question",
+              "value": " Welche Trends sind für E-Mobilität in Deutschland in den nächsten 40 Jahren relevant?",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -160,
+        3060
+      ],
+      "id": "9c1b9b06-3b3c-43f9-9d87-9c454248da88",
+      "name": "Theme Question1"
+    },
+    {
+      "parameters": {
+        "name": "search_docs",
+        "description": "search the vector data base to answer the question.",
+        "workflowId": {
+          "__rl": true,
+          "value": "0kjMhRTU8aA2NSAb",
+          "mode": "list",
+          "cachedResultName": "search_docs"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "name": "search_docs",
+            "description": "Search the vector database for semantically similar documents",
+            "parameters": "={\n  \"query\": \"{{ $fromAI('query', '', 'string') }}\"\n}\n"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "name",
+              "displayName": "name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "description",
+              "displayName": "description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "parameters",
+              "displayName": "parameters",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "object",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.1,
+      "position": [
+        340,
+        3280
+      ],
+      "id": "e4e1d6b1-7034-43bb-be5f-d03035108700",
+      "name": "search_docs"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "Beantworte diese Frage mit den 10 besten Vektor-DB-Treffern und liefere eine wissenschaftlich fundierte Analyse:\n\nWelche Trends sind für E-Mobilität in Deutschland in den nächsten 40 Jahren relevant?\n",
+        "options": {
+          "systemPromptTemplate": "=Du bist Research-Assistant™, Dr.-Level in E-Mobilität.\nNutze ausschließlich diesen Kontext:\n\n{context}\n\nBeantworte dann die Frage:\n\n{{ $json.parameters.query }}\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainRetrievalQa",
+      "typeVersion": 1.5,
+      "position": [
+        -1340,
+        3640
+      ],
+      "id": "5afc0296-7521-4a78-8347-6d5c7da19189",
+      "name": "Question and Answer Chain1"
+    },
+    {
+      "parameters": {
+        "topK": 20
+      },
+      "type": "@n8n/n8n-nodes-langchain.retrieverVectorStore",
+      "typeVersion": 1,
+      "position": [
+        -1200,
+        3860
+      ],
+      "id": "38f8e85d-a81b-41a5-8cdc-9e496d045dfc",
+      "name": "Vector Store Retriever1"
+    },
+    {
+      "parameters": {
+        "tableName": {
+          "__rl": true,
+          "value": "documents",
+          "mode": "list",
+          "cachedResultName": "documents"
+        },
+        "options": {
+          "queryName": "match_documents"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1.1,
+      "position": [
+        -1160,
+        4060
+      ],
+      "id": "6a6edecc-0b45-4b4b-ae61-5959683c11d3",
+      "name": "Supabase Vector Store5",
+      "credentials": {
+        "supabaseApi": {
+          "id": "YGLWNb69GyznHjna",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "mxbai-embed-large:latest"
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOllama",
+      "typeVersion": 1,
+      "position": [
+        -1240,
+        4260
+      ],
+      "id": "d6101f48-ebbe-4d23-9439-6fa636382fbd",
+      "name": "Embeddings Ollama4",
+      "credentials": {
+        "ollamaApi": {
+          "id": "1m08PFBJMBX5Y9Dk",
+          "name": "Ollama account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.0-flash-001",
+        "options": {
+          "temperature": 0.2
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -1440,
+        3860
+      ],
+      "id": "93668cb2-ef14-46d5-a1ae-0db16a273bf1",
+      "name": "Google Gemini Chat Model6",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "OdQ18mX2mzuohqoa",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "inputSource": "jsonExample",
+        "jsonExample": "{\n  \"name\": \"search_docs\",\n  \"description\": \"Search the vector database for semantically similar documents\",\n  \"parameters\": {\n    \"type\": \"object\",\n    \"properties\": {\n      \"query\": {\n        \"type\": \"string\",\n        \"description\": \"The user’s question\"\n      }\n    },\n    \"required\": [\"query\"]\n  }\n}\n"
+      },
+      "id": "0095816d-ab61-42ab-ad3b-7f622e84923c",
+      "typeVersion": 1.1,
+      "name": "search_docs1",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [
+        -1640,
+        3640
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Test workflow’": {
+      "main": [
+        [
+          {
+            "node": "Set search request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [],
+        [
+          {
+            "node": "HTTP Request8",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Default Data Loader": {
+      "ai_document": [
+        [
+          {
+            "node": "Supabase Vector Store",
+            "type": "ai_document",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Character Text Splitter": {
+      "ai_textSplitter": [
+        [
+          {
+            "node": "Default Data Loader",
+            "type": "ai_textSplitter",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase Vector Store": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out1": {
+      "main": [
+        [
+          {
+            "node": "Supabase Vector Store",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Ollama": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Supabase Vector Store",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Get different search variations",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "searxng": {
+      "main": [
+        [
+          {
+            "node": "Split Out3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model2": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Get different search variations",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out2": {
+      "main": [
+        [
+          {
+            "node": "searxng",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out3": {
+      "main": [
+        [
+          {
+            "node": "extract url and query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set search request": {
+      "main": [
+        [
+          {
+            "node": "Get different search variations",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get different search variations": {
+      "main": [
+        [
+          {
+            "node": "Split Out2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "extract url and query": {
+      "main": [
+        [
+          {
+            "node": "Limit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request8": {
+      "main": [
+        [
+          {
+            "node": "Split Out1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Vector Store Retriever": {
+      "ai_retriever": [
+        [
+          {
+            "node": "Question and Answer Chain",
+            "type": "ai_retriever",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase Vector Store4": {
+      "ai_vectorStore": [
+        [
+          {
+            "node": "Vector Store Retriever",
+            "type": "ai_vectorStore",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Ollama3": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Supabase Vector Store4",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model5": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Question and Answer Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Limit": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Question and Answer Chain": {
+      "main": [
+        []
+      ]
+    },
+    "Theme Question": {
+      "main": [
+        [
+          {
+            "node": "Question and Answer Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Theme Question",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger2": {
+      "main": [
+        [
+          {
+            "node": "Theme Question2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Theme Question2": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "search_docs2": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser1": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model3": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger1": {
+      "main": [
+        [
+          {
+            "node": "Theme Question1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Theme Question1": {
+      "main": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "search_docs": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Vector Store Retriever1": {
+      "ai_retriever": [
+        [
+          {
+            "node": "Question and Answer Chain1",
+            "type": "ai_retriever",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase Vector Store5": {
+      "ai_vectorStore": [
+        [
+          {
+            "node": "Vector Store Retriever1",
+            "type": "ai_vectorStore",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Ollama4": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Supabase Vector Store5",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model6": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Question and Answer Chain1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "search_docs1": {
+      "main": [
+        [
+          {
+            "node": "Question and Answer Chain1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "a7ff6c7a-2816-4784-8ff5-2f6febb09d2a",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "95d0d82f39690074bd88268e92434de75bb7a62327e03bd76ce8fcecf6b02208"
+  },
+  "id": "s1ACKPJ7YkhwiIiv",
+  "tags": []
+}
