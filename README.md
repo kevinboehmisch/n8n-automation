@@ -38,7 +38,7 @@ Dieses Repository enthält eine komplette Umgebung, um automatisierte Workflows 
 
 4. **Workflow importieren**
    - Öffne das n8n-Frontend unter `http://localhost:5678` (Standardport).
-   - Klicke oben links auf **Import** und lade `templates/search_workflow_docker.json` hoch.
+   - Klicke oben links auf **Import** und lade `n8n_template/search_workflow_docker.json` hoch.
    - Aktiviere den Workflow, um ihn regelmäßig oder manuell auszuführen.
 
 ## Alternative: Lokaler Betrieb ohne Docker
