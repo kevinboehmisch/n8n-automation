@@ -2,6 +2,8 @@
 
 # Shared configuration für Crawl4AI
 x-base-config: &base-config
+  networks:
+      - appnet
   ports:
     - "11235:11235"
   env_file:
@@ -74,6 +76,7 @@ services:
     restart: unless-stopped
     networks:
       - searxng
+      - appnet
     volumes:
       - valkey-data2:/data:rw
     cap_drop:
@@ -95,6 +98,7 @@ services:
     restart: unless-stopped
     networks:
       - searxng
+      - appnet
     ports:
       - "127.0.0.1:8080:8080"
     volumes:
@@ -120,6 +124,8 @@ services:
     image: n8nio/n8n:latest
     container_name: n8n
     restart: unless-stopped
+    networks:
+      - appnet
     ports:
       - "5678:5678"
     volumes:
@@ -128,13 +134,47 @@ services:
       - N8N_BASIC_AUTH_ACTIVE=true
       - N8N_BASIC_AUTH_USER=admin
       - N8N_BASIC_AUTH_PASSWORD=secret
+  # ────────── postgres ──────────
+  postgres:
+    image: ankane/pgvector 
+    container_name: postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - appnet
 
+  # ────────── ollama ──────────
+  ollama:
+    image: ollama/ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-models:/root/.ollama
+    networks:
+      - appnet
+    entrypoint: >
+      sh -c "
+        ollama serve &
+        sleep 5 &&
+        ollama pull llama3 &&
+        ollama pull mxbai-embed-large &&
+        ollama pull nomic-embed-text &&
+        wait
+      "
 
 networks:
   searxng:
+  appnet:
 
 volumes:
   caddy-data:
   caddy-config:
   valkey-data2:
   n8n-data:
+  postgres-data:
+  ollama-models:
