@@ -1,0 +1,2469 @@
+{
+  "name": "My workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "e4095546-becd-4a66-a9ef-1912029ed5da",
+      "name": "Loop Over Items",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        2180,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 1.1 Set the search parameters and amount of different variations\n\nIn the first step the search parameters can be set.\nThe LLM will automatically generate different search request variations\n\n- use **Set search request** to set the search parameter\n- you can prompt the amount of variations in the **Get different search variations** node change the amount:  `1–2 Strings` to your liking\n\n### Set the variations:\n- the variations are hardcoded and can be changed in the LLM prompt\n\n",
+        "height": 334,
+        "width": 590,
+        "color": 7
+      },
+      "id": "5c77b46a-607b-4e90-8d75-6a3330e0a31b",
+      "name": "Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        140,
+        -100
+      ]
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "results[0].markdown",
+        "options": {
+          "destinationFieldName": "documents"
+        }
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        3080,
+        300
+      ],
+      "id": "b56bd9fc-5dc2-49c1-815c-c9ec0c8acbea",
+      "name": "Split Out1"
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"variations\": {\n      \"type\": \"array\",\n      \"items\": { \"type\": \"string\" }\n    }\n  },\n  \"required\": [\"variations\"]\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.2,
+      "position": [
+        760,
+        500
+      ],
+      "id": "3d20166b-fa27-42e7-9dfc-e6065c0493ff",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "url": "http://searxng:8080/search",
+        "sendQuery": true,
+        "specifyQuery": "=keypair",
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "=q",
+              "value": "={{ $json.variations }}"
+            },
+            {
+              "name": "format",
+              "value": "json"
+            },
+            {
+              "name": "categories",
+              "value": "={{ $('Set Parameters per LLM').item.json.output.categories }}"
+            }
+          ]
+        },
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 1
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1060,
+        260
+      ],
+      "id": "06dee2e8-0394-45a7-a156-f26f0d2d3c07",
+      "name": "searxng"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.0-flash-001",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        600,
+        500
+      ],
+      "id": "5811ad14-514c-4a02-b5d5-7f9247a25cd7",
+      "name": "Google Gemini Chat Model2",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "7F06cMZRr0J6TFQc",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "output.variations",
+        "options": {
+          "destinationFieldName": "variations"
+        }
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        880,
+        260
+      ],
+      "id": "4a2afcfd-ffad-4ea0-afb8-c0d8793f0bd2",
+      "name": "Split Out2"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "results",
+        "include": "selectedOtherFields",
+        "fieldsToInclude": "query",
+        "options": {
+          "destinationFieldName": "results"
+        }
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        1260,
+        260
+      ],
+      "id": "cb6cbcf1-9382-45a9-a94f-52d80484daed",
+      "name": "Split Out3"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "14facf3f-b95f-43db-8ffa-cf3ded5ba5e0",
+              "name": "topic",
+              "value": "={{ $json.chatInput }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -20,
+        260
+      ],
+      "id": "3f0197a7-ea03-48e2-b0f7-19be6980b6e0",
+      "name": "Set search request"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Du bist ein Assistant, der mir hilft, für eine Suchanfrage alle sinnvollen Varianten (Synonyme, englische/ deutsche Schreibweisen, Zusammen‑/Getrenntschreibung) auszuspielen. \nEingabe: ein Thema {{ $('Set search request').item.json.topic }}. \nAusgabe: **nur** ein gültiges JSON‑Objekt mit genau einem Feld \"variations\", das eine Liste von 4–10 Strings enthält.\nBeispiel‑Schema:\n{\n  \"type\": \"object\",\n  \"properties\": {\n    \"variations\": {\n      \"type\": \"array\",\n      \"items\": { \"type\": \"string\" }\n    }\n  },\n  \"required\": [\"variations\"]\n}\n\n**Keine** zusätzlichen Erklärungen oder Floskeln, **nur** das JSON.\n",
+        "hasOutputParser": true
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.6,
+      "position": [
+        520,
+        260
+      ],
+      "id": "2293550d-9862-40d4-b4a4-850c039c53ff",
+      "name": "Get different search variations",
+      "alwaysOutputData": true,
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "content": "## 1.2 Search for URLs with Searxng\n\nIt is necessary to run the searxng docker: https://github.com/searxng/searxng-docker\nto run on windows you also need to run the docker desktop app.\n\n1. edit the settings.yml:\n```\nuse_default_settings: true\n\nserver:\n  # change this key\n  secret_key: \"test\"\n  # disable limiter, otherwise problems will occure \n  limiter: false\n  public_instance: false\n\n# load the default json endpoint (set per default, just to make sure)\nsearch:\n  formats:\n    - html\n    - json\n\n# DOI‑Resolver, for scientific papers\ndoi_resolvers:\n  oadoi.org:   'https://oadoi.org/'\n  doi.org:     'https://doi.org/'\ndefault_doi_resolver: 'oadoi.org'\n```\n2. in the searxng root terminal run docker compose up \n3. set the limit how many websites you want to search\n\n### 4. Default URL:\n- the default url is specified for starting n8n via docker: `http://searxng:8080/search` \n- if you run n8n on your pc via `npx n8n` instead use: `http://127.0.0.1:8080/search` \n\n### 5. add parameters to the searching node:\n- click on **Add parameter** in the searxng node\n- Name: `categories`\n- Value: `news ` for news, `science` for research papers\n- per default the LLM will set the search parameters\n",
+        "height": 814,
+        "width": 670,
+        "color": 7
+      },
+      "id": "87eb9cbd-b894-43fb-8cbf-ad9e843082a4",
+      "name": "Sticky Note2",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        960,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c9aa5a9e-fffe-4cca-bd02-7c15b114f5d5",
+              "name": "results.url",
+              "value": "={{ $json.results.url }}",
+              "type": "string"
+            },
+            {
+              "id": "076427e6-c2cd-43f5-ba8b-3abc39fc491b",
+              "name": "query",
+              "value": "={{ $json.query }}",
+              "type": "string"
+            },
+            {
+              "id": "cf5cd02c-eb87-4e75-929e-028ea8564291",
+              "name": "results.content",
+              "value": "={{ $json.results.content }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1480,
+        260
+      ],
+      "id": "3f8e6abd-ee59-4244-8c68-98818e7c5a0b",
+      "name": "extract url and query"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://crawl4ai:11235/crawl",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"urls\": [\"{{ $json.results.url }}\"],\n  \"priority\": 10\n}\n",
+        "options": {}
+      },
+      "id": "bd917215-15d9-472a-8857-450ed54fb079",
+      "name": "HTTP Request8",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2860,
+        300
+      ],
+      "alwaysOutputData": false,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "content": "## 1.3 Scrape the website with Crawl4ai\n\n### 1. Only needed if not using the provided docker image\n- Download the docker files: https://docs.crawl4ai.com/core/docker-deployment/\n- follow the steps as shown in the documentation for local development and build and run locally with `docker compose up --build -d`\n\n### 3. Default URL:\n- the default url is specified for starting n8n via docker: `http://crawl4ai:11235/crawl` \n- if you run n8n on your pc via `npx n8n` instead use: `http://127.0.0.1:11235/crawl` \n\n\n",
+        "height": 314,
+        "width": 690,
+        "color": 7
+      },
+      "id": "e6714f97-d5a8-48c0-b085-13d3a3d46c22",
+      "name": "Sticky Note3",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1920,
+        520
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 1.4 Store the websites in the Vector Database\n\n1. To store the data of the webiste in a vector database open a bash terminal and enter postgres:\n```\n docker exec -it postgres psql -U postgres -d postgres\n```\n2. copy and run the following code, specified for embedding with ollama:\n```\n-- 1) pgvector-Extension (falls nicht bereits aktiv)\nCREATE EXTENSION IF NOT EXISTS vector;\n\n-- 2) Neue Tabelle mit 768-dimensionalem Embedding\nCREATE TABLE documents (\n  id        bigserial PRIMARY KEY,\n  text      text,\n  metadata  jsonb,\n  embedding vector(768)\n);\n\n-- 3) IVFFlat-Index für schnelle Ähnlichkeitssuche\nCREATE INDEX ON documents\nUSING ivfflat (embedding vector_l2_ops)\nWITH (lists = 100);\n\n-- 4) Funktion für 1024-dim-Vektoren anlegen\nCREATE OR REPLACE FUNCTION match_documents (\n  query_embedding vector(768),\n  match_count    int      DEFAULT NULL,\n  filter         jsonb    DEFAULT '{}'\n) RETURNS TABLE (\n  id         bigint,\n  content    text,\n  metadata   jsonb,\n  similarity float\n)\nLANGUAGE plpgsql\nAS $$\nBEGIN\n  RETURN QUERY\n    SELECT\n      docs.id        AS id,\n      docs.content   AS content,\n      docs.metadata  AS metadata,\n      1 - (docs.embedding <=> query_embedding) AS similarity\n    FROM documents AS docs\n    WHERE docs.metadata @> filter\n    ORDER BY docs.embedding <=> query_embedding\n    LIMIT match_count;\nEND;\n$$;\n```\n- leave the sql editor with `exit`\n\n\n### 2. Default URL for Ollama Credentials:\n- Pull `ollama pull mxbai-embed-large:latest` and make sure the ollama server is already running with `ollana serve`\n- the default url is specified for starting n8n via docker: `hhttp://ollama:11434` \n- if you run n8n on your pc via `npx n8n` instead use: `http://localhost:11434` ",
+        "height": 1094,
+        "width": 690,
+        "color": 7
+      },
+      "id": "3b70861f-1cd9-48fc-b5b8-38a7846219c6",
+      "name": "Sticky Note7",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        3880,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Basierend auf den vorliegenden Dokumenten und deinem Expertenwissen, beantworte diese Frage:\n\n{{ $json.frage }}",
+        "options": {
+          "systemPromptTemplate": "=Du bist Research-Assistant™, Dr.-Level in E-Mobilität.\n\n# Regeln:\n\n1. Nutze ausschließlich diesen Kontext:\n\n{context}\n\n2. Beantworte dann die Frage:\n\n{{ $json.frage }}\n\n3. verwende nur die relevanteste quelle und merke dir die url aus den metadaten, gib nur eine konkrete url zurück! \n\n3. Antworte nur im JSON. Befülle folgende Felder:\n\n- frage (string)\n- thema (string)\n- url (string)\n- zusammenfassung (string)\n- analyse (string)\n- ranking (string)\n\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainRetrievalQa",
+      "typeVersion": 1.5,
+      "position": [
+        3220,
+        1860
+      ],
+      "id": "8073fc23-d55a-476e-9fef-805fe9d0e4d2",
+      "name": "Question and Answer Chain",
+      "alwaysOutputData": true,
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.0-flash-001",
+        "options": {
+          "temperature": 0.2
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        3200,
+        2140
+      ],
+      "id": "b86b2850-2a0e-446f-ba02-c7d45c922dbb",
+      "name": "Google Gemini Chat Model5",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "7F06cMZRr0J6TFQc",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "00eb5335-583c-4756-aa39-6e79701b8495",
+              "name": "=question",
+              "value": "={{ $json.topic }}",
+              "type": "string"
+            },
+            {
+              "id": "b7efa584-21e5-4b2a-8d5d-ce5888a769fb",
+              "name": "beispiel prompt",
+              "value": "Welche Trends, Technologien und Rahmenbedingungen sind aktuell und in den nächsten Jahrzehnten relevant für die Entwicklung der Elektromobilität in Deutschland? Berücksichtigen Sie dabei Infrastruktur (Lade-Netze, Stromversorgung), Politik und Regulierung (Förderprogramme, Gesetzgebung), Wirtschaft (Marktentwicklung, Industriepartnerschaften), Technologie (Batterie-Innovation, Fahrzeugdesign) und gesellschaftliches Nutzungsverhalten.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1880,
+        1860
+      ],
+      "id": "a6ae5b78-1244-439f-9f69-523524ae5866",
+      "name": "Theme Question"
+    },
+    {
+      "parameters": {
+        "content": "# 1. Vectorstorage Workflow\n\n## Get and store data for topic: e-mobility\n\nThis is the workflow just to get the data and store it.\nAnalyzation will be done in the 2. workflow\n\n",
+        "height": 220,
+        "width": 490,
+        "color": 4
+      },
+      "id": "218ece02-d501-4989-9c8b-cd3c206a3a0e",
+      "name": "Sticky Note8",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -900,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 2.2 Set the analysing question and rank the best data\n\n- use **Theme Question** to edit the input question\n- Number of results by the Vector Store can be set in the **Vector Store Retreiver** Node\n",
+        "height": 214,
+        "width": 530,
+        "color": 7
+      },
+      "id": "95c40b0b-f311-42ca-a3c7-3d56bd6e847b",
+      "name": "Sticky Note9",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        960,
+        1440
+      ]
+    },
+    {
+      "parameters": {
+        "content": "# 2. Analyzing workflow \n\n## Analyze the data\n\nThis is the workflow is necessary for the data analyzation. Simple with just one node\n\n\n",
+        "height": 220,
+        "width": 490,
+        "color": 5
+      },
+      "id": "d9fd9210-c153-43de-b4c8-281c87b227b1",
+      "name": "Sticky Note10",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -540,
+        1440
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Experimental: Analyze the data with an AI Agent \n\nThis is the workflow is necessary for the data analyzation, implemented with an AI Agent who calls a sub-workflow\n\n\n",
+        "height": 140,
+        "width": 490,
+        "color": 5
+      },
+      "id": "930c7995-c02e-49b9-87d7-b8cb978433de",
+      "name": "Sticky Note11",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -560,
+        4860
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 3. Experimental: Sub-workflow for the AI Agent\n\nThis is the sub-workflow which gets the RAG Data, it needs to be copied in an extra workflow file outside of this one\n",
+        "height": 140,
+        "width": 490,
+        "color": 6
+      },
+      "id": "9209e67c-bc59-439f-82d9-73714ca15785",
+      "name": "Sticky Note12",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        900,
+        4860
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Basierend auf den vorliegenden Dokumenten und deinem Expertenwissen, beantworte diese Frage:\n\n{{ $json.question }}\n\nGib mir die Antwort als JSON-Array zurück.\n",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "Du bist Research-Assistant™, Dr.-Level in E-Mobilität.  \nWenn Du Kontext brauchst, rufe **search_docs(query, 10)** auf. Du erhältst ein Array von 10 Dokumenten, jedes mit mindestens diesen Feldern:\n- url     (string)\n- title   (string)\n- snippet (string – kurzer Auszug)\n\nArbeite so:\n\n1. Rufe **search_docs({{ $json.parameters.query }}, 10)** auf (schreibe im Stream-of-Thought: „I will call search_docs because…“).  \n2. Ordne jedem der 10 Treffer einen eigenen Trend zu.  \n3. Für jedes Ergebnis baue ein JSON-Objekt mit diesen Feldern:\n   - **uebertheme**: immer „E-Mobilität“  \n   - **theme**: kurzer Trend-Name (z. B. „Plug and Charge“)  \n   - **url**: exakte URL aus dem RAG-Treffer  \n   - **analysis**: 2–3 Sätze, die erklären, **warum gerade dieses Dokument** den Trend untermauert (verweise auf Title oder Snippet)  \n   - **summary**: 1–2 Sätze prägnanter Zusammenfassung des Dokuments  \n   - **ranking**: Position 1–10 entsprechend Relevanz (1 = höchst relevant)  \n   - **date**: heutiges Datum im Format YYYY-MM-DD\n\n4. Gib **nur** ein JSON-Array mit genau 10 solchen Objekten zurück – sonst nichts.\n",
+          "maxIterations": 10
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.9,
+      "position": [
+        460,
+        4860
+      ],
+      "id": "e635053c-103d-4dcc-b32b-6c547336f9bd",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.0-flash-001",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        400,
+        5080
+      ],
+      "id": "8bd2a961-8788-4222-9797-2056daf3ec30",
+      "name": "Google Gemini Chat Model"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {}
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        20,
+        4860
+      ],
+      "id": "7b5573d4-b2df-465e-bb49-fe5fe467a8d3",
+      "name": "Schedule Trigger2"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "00eb5335-583c-4756-aa39-6e79701b8495",
+              "name": "question",
+              "value": " Welche Trends sind für E-Mobilität in Deutschland in den nächsten 40 Jahren relevant?",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        240,
+        4860
+      ],
+      "id": "56f43fe4-2f75-4200-92b5-6c422f0dda3c",
+      "name": "Theme Question2"
+    },
+    {
+      "parameters": {
+        "name": "search_docs",
+        "description": "search the vector data base to answer the question.",
+        "workflowId": {
+          "__rl": true,
+          "value": "0kjMhRTU8aA2NSAb",
+          "mode": "list",
+          "cachedResultName": "search_docs"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "name": "search_docs",
+            "description": "Search the vector database for semantically similar documents",
+            "parameters": "={\n  \"query\": \"{{ $fromAI('query', '', 'string') }}\"\n}\n"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "name",
+              "displayName": "name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "description",
+              "displayName": "description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "parameters",
+              "displayName": "parameters",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "object",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.1,
+      "position": [
+        560,
+        5080
+      ],
+      "id": "a3b9f8cb-e680-41c1-a42c-48d84fb600eb",
+      "name": "search_docs2"
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "[\n  {\n    \"uebertheme\": \"E-Mobilität\",\n    \"theme\": \"Plug and Charge\",\n    \"url\": \"https://goingelectric.de/plug-and-charge-pilotprojekt\",\n    \"analysis\": \"Dieses Pilotprojekt beschreibt im Detail, wie ISO 15118 die Ladeauthentifizierung automatisiert – besonders interessant sind die Feldtests in München und Berlin, die im Artikel erläutert werden.\",\n    \"summary\": \"Plug and Charge ermöglicht das automatische Starten und Abrechnen von Ladevorgängen ohne zusätzliche Hardware oder App.\",\n    \"ranking\": 1,\n    \"date\": \"2025-04-25\"\n  },\n  {\n    \"uebertheme\": \"E-Mobilität\",\n    \"theme\": \"Bidirektionales Laden\",\n    \"url\": \"https://bdew.de/v2g-studie-2024\",\n    \"analysis\": \"Die BDEW-Studie zeigt anhand von Simulationen für das Berliner Netz, wie V2G bis zu 15 % Spitzenlast abfedern kann – interessant sind die Methodik und die konkreten Zahlen zur Netzstabilität.\",\n    \"summary\": \"Bidirektionales Laden erlaubt es E-Autos, Strom ins Netz zurückzuspeisen und so Netzschwankungen auszugleichen.\",\n    \"ranking\": 2,\n    \"date\": \"2025-04-25\"\n  }\n]\n"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.2,
+      "position": [
+        720,
+        5080
+      ],
+      "id": "7499e660-932e-4065-beb3-83ee71d5bcb0",
+      "name": "Structured Output Parser1"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "Beantworte diese Frage mit den 10 besten Vektor-DB-Treffern und liefere eine wissenschaftlich fundierte Analyse:\n\nWelche Trends sind für E-Mobilität in Deutschland in den nächsten 40 Jahren relevant?\n",
+        "options": {
+          "systemPromptTemplate": "=Du bist Research-Assistant™, Dr.-Level in E-Mobilität.\nNutze ausschließlich diesen Kontext:\n\n{context}\n\nBeantworte dann die Frage:\n\n{{ $json.parameters.query }}\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainRetrievalQa",
+      "typeVersion": 1.5,
+      "position": [
+        1780,
+        4880
+      ],
+      "id": "d8f3d87b-4c1a-4f50-ab26-4c61e8524853",
+      "name": "Question and Answer Chain1"
+    },
+    {
+      "parameters": {
+        "topK": 20
+      },
+      "type": "@n8n/n8n-nodes-langchain.retrieverVectorStore",
+      "typeVersion": 1,
+      "position": [
+        1920,
+        5100
+      ],
+      "id": "b7faf5b6-a6bc-4d7c-a39e-e2d2a80cfd6c",
+      "name": "Vector Store Retriever1"
+    },
+    {
+      "parameters": {
+        "tableName": {
+          "__rl": true,
+          "value": "documents",
+          "mode": "list",
+          "cachedResultName": "documents"
+        },
+        "options": {
+          "queryName": "match_documents"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1.1,
+      "position": [
+        1960,
+        5300
+      ],
+      "id": "ba947b20-334c-4e28-8d48-6f9d6ece4a09",
+      "name": "Supabase Vector Store5"
+    },
+    {
+      "parameters": {
+        "model": "mxbai-embed-large:latest"
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOllama",
+      "typeVersion": 1,
+      "position": [
+        1880,
+        5500
+      ],
+      "id": "3b17596b-1f56-4bdb-a95b-3a5cd8d54378",
+      "name": "Embeddings Ollama4"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.0-flash-001",
+        "options": {
+          "temperature": 0.2
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        1680,
+        5100
+      ],
+      "id": "34b6b852-b07b-4ddf-90ab-218d22d5c366",
+      "name": "Google Gemini Chat Model6"
+    },
+    {
+      "parameters": {
+        "inputSource": "jsonExample",
+        "jsonExample": "{\n  \"name\": \"search_docs\",\n  \"description\": \"Search the vector database for semantically similar documents\",\n  \"parameters\": {\n    \"type\": \"object\",\n    \"properties\": {\n      \"query\": {\n        \"type\": \"string\",\n        \"description\": \"The user’s question\"\n      }\n    },\n    \"required\": [\"query\"]\n  }\n}\n"
+      },
+      "id": "8b9f4920-6c83-4f67-8e6a-d04f6fd348c0",
+      "typeVersion": 1.1,
+      "name": "search_docs1",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [
+        1480,
+        4880
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Basierend auf dieser Fragestellung:\n\n{{ $json.question }}\n\ngeneriere einen prompt für die Vectordatenbank um die relevantesten Dokumente herauszufinden, fasse dich vom unfang her so kurz wie die frage selbst, nutze unterschiedliche variationen damit immer eine neue query rauskommt.\n\nKein Einleitungstext, kein schnickschnack nur eine einzige Frage!",
+        "messages": {
+          "messageValues": [
+            {
+              "message": "=Du bist ein wissenschaftler und stellst dir die frage nach den zukunftstrends der e mobilität in deutschland. dein output ist eine einzige frage vom unfang her so groß wie die übergebene frage:  {{ $json.question }} varieere und sei kreativ in der formulierung, blicke über den tellerand der ursprünglichen frage hinaus!"
+            }
+          ]
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.6,
+      "position": [
+        2140,
+        1860
+      ],
+      "id": "86f56d86-8160-4d9d-8423-6e3a442b86a7",
+      "name": "Basic LLM Chain"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.0-flash-001",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        2300,
+        2100
+      ],
+      "id": "5bcc5b39-daf8-4f53-98e4-3e201303dbf1",
+      "name": "Google Gemini Chat Model1",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "7F06cMZRr0J6TFQc",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "3f8d891d-fbb8-4688-bd75-591140b4bc82",
+              "name": "frage",
+              "value": "={{ $json.text }}",
+              "type": "string"
+            },
+            {
+              "id": "3f676690-e721-4aeb-a7cd-d439d878ee31",
+              "name": "thema",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "df01242b-0579-4b52-983d-b56aa1cca60c",
+              "name": "url",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "97533a06-06cd-44ef-a2d4-5d6c3c599fb4",
+              "name": "zusammenfassung",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "779dcfe4-3c40-482d-b48a-2df4fc13d4df",
+              "name": "analysen",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "338f90d9-89b6-4435-b2db-9991994e6af2",
+              "name": "ranking",
+              "value": 0,
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2540,
+        1860
+      ],
+      "id": "e415e142-8d88-4bca-b3f9-7855ba8fe717",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "text": "={{ $json.response }}",
+        "attributes": {
+          "attributes": [
+            {
+              "name": "frage",
+              "description": "die ursprüngliche frage auf die das llm geantwortet hat",
+              "required": true
+            },
+            {
+              "name": "thema",
+              "description": "das thema kurz als überschrift",
+              "required": true
+            },
+            {
+              "name": "url",
+              "description": "die angegebene url",
+              "required": true
+            },
+            {
+              "name": "zusammenfassung",
+              "description": "die zusammenfassung des textes",
+              "required": true
+            },
+            {
+              "name": "analysen",
+              "description": "die analyse des textes",
+              "required": true
+            },
+            {
+              "name": "ranking",
+              "description": "das ranking der relevanz",
+              "required": true
+            }
+          ]
+        },
+        "options": {
+          "systemPromptTemplate": "You are an expert extraction algorithm.\nOnly extract relevant information from the text.\nIf you do not know the value of an attribute asked to extract, leave it blank"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.informationExtractor",
+      "typeVersion": 1,
+      "position": [
+        3640,
+        1860
+      ],
+      "id": "a6835e6b-5025-4abc-954e-86ad1822a21e",
+      "name": "Information Extractor",
+      "alwaysOutputData": true,
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.0-flash-001",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        3700,
+        2140
+      ],
+      "id": "a0f3b46a-cc84-4048-a1df-d728754f3e0e",
+      "name": "Google Gemini Chat Model4",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "7F06cMZRr0J6TFQc",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "4ea899ff-ae1d-4dcb-8cd9-03cb799ac308",
+              "name": "output.frage",
+              "value": "={{ $json.output.frage }}",
+              "type": "string"
+            },
+            {
+              "id": "0fccd4e0-03e9-4874-bec9-8672ec86b722",
+              "name": "output.thema",
+              "value": "={{ $json.output.thema }}",
+              "type": "string"
+            },
+            {
+              "id": "08a4f0a2-1478-4e37-b4f8-1573e48787df",
+              "name": "output.url",
+              "value": "={{ $json.output.url }}",
+              "type": "string"
+            },
+            {
+              "id": "48d62b56-6363-4203-8fac-0965eec25dae",
+              "name": "output.zusammenfassung",
+              "value": "={{ $json.output.zusammenfassung }}",
+              "type": "string"
+            },
+            {
+              "id": "47f5ae98-881a-46ba-aac8-3017fe3a460b",
+              "name": "output.analysen",
+              "value": "={{ $json.output.analysen }}",
+              "type": "string"
+            },
+            {
+              "id": "ef909638-41a1-4776-a0c9-b432df090d0e",
+              "name": "output.ranking",
+              "value": "={{ $json.output.ranking }}",
+              "type": "string"
+            },
+            {
+              "id": "a92e985e-ead9-48af-8c26-5be697aa1830",
+              "name": "output.user_question",
+              "value": "={{ $('Set search request').item.json.topic }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        4200,
+        1860
+      ],
+      "id": "56085a9c-8365-4860-a95a-7682fcb3c353",
+      "name": "Edit Fields1"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        1600,
+        1680
+      ],
+      "id": "ea547c78-1497-4b58-819a-9f73d9134010",
+      "name": "Loop Over Items1"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.1,
+      "position": [
+        4440,
+        1680
+      ],
+      "id": "210a35c4-6d13-4e1e-bced-8d1c84c39e2a",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Du erhältst ein JSON-Array unter dem Feld {{ JSON.stringify($json.data) }}.  \nJedes Element hat die Felder frage, thema, url, zusammenfassung, analyse, ranking, user_question.  \nWähle daraus die **relevantesten** Items aus und liefere ein neues JSON-Array mit 1-10 Objekten, achte darauf ob der user in der user_question eine Anzahl definiert: {{ $json.data[0].output.user_question }}.  \nFüge jedem Objekt das Feld \"begründung\" hinzu, in dem Du in 1–4 Sätzen erklärst, warum gerade diese Quelle so gewählt wurde.\n\n\nDu erhältst ein JSON-Array unter dem Feld {{ JSON.stringify($json.data) }}. \nJedes Element hat die Felder frage, thema, url, zusammenfassung, analysen, ranking, user_question.\n\nWähle die relevantesten 1-10 Objekte aus, füge jedem das Feld \"begründung\" hinzu, in dem Du in 1–4 Sätzen erklärst, warum gerade diese Quelle so gewählt wurde und gib **ausschließlich** ein gültiges JSON-Array zurück.\n\n",
+        "hasOutputParser": true,
+        "messages": {
+          "messageValues": [
+            {
+              "message": "=Du bist eine Expertin für Elektrotechnik und Wirtschaft am Standort Deutschland und analysierst auf Professoren-Level für die Forschung.\n"
+            }
+          ]
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.6,
+      "position": [
+        4760,
+        1680
+      ],
+      "id": "65d38172-a875-44ab-87b8-0c772b7fe939",
+      "name": "Basic LLM Chain1",
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "alwaysOutputData": true,
+      "maxTries": 2,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.0-flash-001",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        4680,
+        1880
+      ],
+      "id": "cb281771-dbe8-4ade-a61b-de59507ff5cd",
+      "name": "Google Gemini Chat Model7",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "7F06cMZRr0J6TFQc",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        4600,
+        1680
+      ],
+      "id": "3e3f88e1-500a-4fdf-96aa-e025420b59f7",
+      "name": "Aggregate"
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"array\",\n  \"minItems\": 2,\n  \"maxItems\": 2,\n  \"items\": {\n    \"type\": \"object\",\n    \"properties\": {\n      \"frage\":         { \"type\": \"string\" },\n      \"thema\":         { \"type\": \"string\" },\n      \"url\":           { \"type\": \"string\", \"format\": \"uri\" },\n      \"zusammenfassung\": { \"type\": \"string\" },\n      \"analysen\":       { \"type\": \"string\" },\n      \"ranking\":       { \"type\": \"string\" },\n      \"begründung\":    { \"type\": \"string\" },\n      \"user_question\":    { \"type\": \"string\" }\n    },\n    \"required\": [\"frage\",\"thema\",\"url\",\"zusammenfassung\",\"analysen\",\"ranking\",\"begründung\", \"user_question\"]\n  }\n}\n"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.2,
+      "position": [
+        4880,
+        1880
+      ],
+      "id": "7e812f2c-3cc9-4057-a5b9-4fa2b4db65ee",
+      "name": "Structured Output Parser2"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        5740,
+        1680
+      ],
+      "id": "a9272bde-9926-4516-a437-ad8876d49b61",
+      "name": "Loop Over Items2"
+    },
+    {
+      "parameters": {
+        "content": "## 2.3 Let the Model analyze the best results\n\n- in this node the model analyzes the results and outputs an array only with the two best results\n- the amount of results the model gives back can be defined in the prompt\n",
+        "height": 194,
+        "width": 530,
+        "color": 7
+      },
+      "id": "69b4bb44-d291-4fee-b465-8f0a63b8c246",
+      "name": "Sticky Note13",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2900,
+        1440
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 2.4 Store the best results in the database\n\n- it loops over the best results and stores them in the database\n- Setup the database with the following sql query in the sql editor in postgres:\n\n```\ncreate extension if not exists \"pgcrypto\";\n\n\ncreate table public.quellen (\n  id              uuid                     primary key default gen_random_uuid(),\n  frage           text                     not null,\n  thema           text                     not null,\n  url             text                     not null,\n  zusammenfassung text,       \n  analysen         text,      \n  ranking         text,\n  \"begründung\"    text,       \n  created_at      timestamp with time zone default now()\n);\n```\n- check if the table was created in the postgres editor with `\\dt public.*`\n### view output:\n- to view the output use the command `\\x auto` in the editor for a better view use `\\x off `to deactivate\n- use `SELECT * FROM public.quellen;` to see the output\n\n",
+        "height": 534,
+        "width": 830,
+        "color": 7
+      },
+      "id": "42c86da8-ef94-4104-b879-b1fe1f540b74",
+      "name": "Sticky Note14",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        5520,
+        2120
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 2.1 Setting the amount of retrieved items from the vector store\n\n- set the amount of retrieved items with `const count`\n- the amount will define how many resources the AI will analyze\n",
+        "height": 214,
+        "width": 530,
+        "color": 7
+      },
+      "id": "2aaf0061-e750-46ff-8523-8a02eb995344",
+      "name": "Sticky Note15",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        20,
+        1440
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 2.3 Let the LLM retreive Data from the Vector store\n\n- the LLM will retreive the data from supabase\n- connect supbase, gemini and ollama credentials\n",
+        "height": 214,
+        "width": 530,
+        "color": 7
+      },
+      "id": "e611041a-1697-40f8-97ef-0f5d69b9d535",
+      "name": "Sticky Note16",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1880,
+        1440
+      ]
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "name": "Replace Me",
+      "typeVersion": 1,
+      "position": [
+        240,
+        3140
+      ],
+      "id": "ed65bd42-28a3-462c-9025-bf53121f06e7"
+    },
+    {
+      "parameters": {
+        "content": "# 3. Continue the Workflow\n\n- to continue the workflow replace this node with the workflow 1 and 2 by copy and pasting them.\n- this way it is possible to analyze multiple different topics in one continious workflow\n- subject topics need to be changed in the `set search request` node and the `theme topic` node\n\n",
+        "height": 220,
+        "width": 490,
+        "color": 7
+      },
+      "id": "24ca11e0-eb20-403b-a212-97bd73506ee4",
+      "name": "Sticky Note17",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -540,
+        3100
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "insert",
+        "tableName": "documents",
+        "embeddingBatchSize": 1,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStorePGVector",
+      "typeVersion": 1.1,
+      "position": [
+        3400,
+        300
+      ],
+      "id": "0241dfa6-7e6c-445f-a773-da586e70a1e9",
+      "name": "Postgres PGVector Store",
+      "credentials": {
+        "postgres": {
+          "id": "UNeFvDIqFFK4T5f6",
+          "name": "Postgres account 2"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "model": "nomic-embed-text:latest"
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOllama",
+      "typeVersion": 1,
+      "position": [
+        3380,
+        560
+      ],
+      "id": "25a850c1-c845-48af-bb5f-210be8c968e8",
+      "name": "Embeddings Ollama1",
+      "credentials": {
+        "ollamaApi": {
+          "id": "zIemgVIGwcb5Fzlv",
+          "name": "Ollama account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+      "typeVersion": 1,
+      "position": [
+        3500,
+        560
+      ],
+      "id": "eac643fe-e199-4e55-9827-252f76f46b53",
+      "name": "Default Data Loader1"
+    },
+    {
+      "parameters": {
+        "chunkSize": 5000,
+        "chunkOverlap": 100
+      },
+      "type": "@n8n/n8n-nodes-langchain.textSplitterCharacterTextSplitter",
+      "typeVersion": 1,
+      "position": [
+        3060,
+        1020
+      ],
+      "id": "fa2aece7-c228-460f-a27f-ea4138d0c5eb",
+      "name": "Character Text Splitter1"
+    },
+    {
+      "parameters": {
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "quellen",
+          "mode": "list",
+          "cachedResultName": "quellen"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "frage": "={{ $json.output[0].frage }}",
+            "thema": "={{ $json.output[0].thema }}",
+            "url": "={{ $json.output[0].url }}",
+            "zusammenfassung": "={{ $json.output[0].zusammenfassung }}",
+            "begründung": "={{ $json.output[0]['begründung'] }}",
+            "ranking": "={{ $json.output[0].ranking }}",
+            "analysen": "={{ $json.output[0].analysen }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "frage",
+              "displayName": "frage",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "thema",
+              "displayName": "thema",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "url",
+              "displayName": "url",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "zusammenfassung",
+              "displayName": "zusammenfassung",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "analysen",
+              "displayName": "analysen",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "ranking",
+              "displayName": "ranking",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "begründung",
+              "displayName": "begründung",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        5980,
+        1880
+      ],
+      "id": "8b738d61-ca3c-4cd7-a842-b842f285eb8f",
+      "name": "Postgres",
+      "credentials": {
+        "postgres": {
+          "id": "ereWPYqdWvkladAz",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Du bist ein wissenschaftlicher Experte und erforscht die aktuellen Trends von heute und in der Zukunft. Du analysiert folgende Quellen, nach ihrer Relevanz, und wählst nur die Top 10 relevantesten Quellen aus, die irrelevanten Quellen ignorierst du und gibst diese nicht aus.\n\nHier ist die zu beantwortende Research Query:\n{{ $('Set search request').item.json.topic }}\nAnalysiere und setze nun die Top 10 Quellen, bei der Auflistung achte darauf\n\n- Thema\n- Analyse\n- url\n\nsollte alles vorhanden sein\n\nHier die zu analysierenden Quellen:\n{{ JSON.stringify($json.allSources) }}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.6,
+      "position": [
+        2340,
+        -80
+      ],
+      "id": "7042ba3d-b3b5-4fb8-a824-0de262c43e72",
+      "name": "Basic LLM Chain2"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -220,
+        260
+      ],
+      "id": "8827af98-05f6-4203-96ee-87df02c1205e",
+      "name": "When chat message received",
+      "webhookId": "a1c1937d-d50b-4222-9a2c-13c055a64816"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.0-flash-001",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        2440,
+        120
+      ],
+      "id": "80022cef-fc2f-43d8-9d47-f75de21d6313",
+      "name": "Google Gemini Chat Model3",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "7F06cMZRr0J6TFQc",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "maxItems": "=5"
+      },
+      "type": "n8n-nodes-base.limit",
+      "typeVersion": 1,
+      "position": [
+        1680,
+        260
+      ],
+      "id": "b61d1a5d-7367-4e25-bf1e-785f338d0cc8",
+      "name": "Limit1",
+      "notes": "{{ $('Set Parameters per LLM').item.json.output.limit }}"
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "destinationFieldName": "allSources",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        2140,
+        -80
+      ],
+      "id": "3a59d76f-9515-413a-92af-b9c561b5eb9b",
+      "name": "Aggregate1"
+    },
+    {
+      "parameters": {
+        "content": "## 1.2.1 Analyse based on Metadata\n\n- in the Node `Analyse Website or Metadata` the LLM will set if a quick search or a detailed search with RAG will be done. Implementation with RAG will take much more time (minutes to hours, depending on the amount of websites)\n\n\n",
+        "height": 174,
+        "width": 690,
+        "color": 7
+      },
+      "id": "e2feb189-c408-4089-9475-7bb3e4d9c4e5",
+      "name": "Sticky Note4",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2120,
+        -280
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "fa969f9d-4bac-4f41-818f-59ef98841878",
+              "leftValue": "={{true.toBoolean()}}",
+              "rightValue": "=true",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1880,
+        120
+      ],
+      "id": "104c3386-702a-440b-99c6-0a23888433b1",
+      "name": "Analyse Website or Metadata",
+      "notes": "{{ $('Set Parameters per LLM').item.json.output.detailed_output }}"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.0-flash-001",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        240,
+        500
+      ],
+      "id": "1837db31-8112-4666-9bba-fd7f5da76db7",
+      "name": "Google Gemini Chat Model8",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "7F06cMZRr0J6TFQc",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"categories\": { \"type\": \"string\" },\n    \"detailed_output\": { \"type\": \"boolean\" },\n    \"limit\": { \"type\": \"integer\" }\n  },\n  \"required\": [\"categories\", \"detailed_output\", \"limit\"]\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.2,
+      "position": [
+        400,
+        500
+      ],
+      "id": "69aa90cb-3227-47c6-a4ef-c9a4c1442706",
+      "name": "Structured Output Parser3"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Du bist ein Assistent, der Benutzereingaben analysiert, um Suchparameter für eine Websuche zu extrahieren.\nEingabe: ein Thema {{ $json.topic }}.\n\nDeine Aufgabe ist es, aus dem Thema die folgenden drei Parameter zu identifizieren und als JSON-Objekt auszugeben. **Alle drei Felder müssen immer im finalen JSON-Objekt enthalten sein**:\n\n1.  **categories**:\n    *   Gib \"news\" aus, wenn das Thema explizit nach Nachrichten, Aktuellem oder Presseberichten fragt (z.B. \"aktuelle Nachrichten zu X\", \"was gibt es Neues bei Y\").\n    *   Gib \"science\" aus, wenn das Thema explizit nach wissenschaftlichen Quellen, Studien, Forschungsergebnissen oder akademischen Papern fragt (z.B. \"wissenschaftliche Studien zu X\", \"Forschung über Y\").\n    *   Gib \"\" (einen leeren String) aus für allgemeine Websuchen oder wenn weder \"news\" noch \"science\" klar erkennbar sind. Dies ist der **Default**, wenn keine anderen Hinweise vorliegen.\n\n2.  **detailed_output**:\n    *   Gib `true` (Boolean) aus, wenn der Nutzer eine ausführliche, detaillierte Antwort, eine umfassende Liste (z.B. \"Top 10\", \"alle wichtigen Punkte\", \"Trends der kommenden Jahre\") oder eine tiefgehende Analyse wünscht.\n    *   Gib `false` (Boolean) aus, wenn der Nutzer eine kurze, knappe Zusammenfassung oder eine schnelle Antwort möchte (z.B. \"kurze Antwort zu X\", \"schnelle Info über Y\").\n    *   **Default**: Wenn nicht explizit anders gewünscht oder aus der Formulierung ableitbar, setze `true` (Boolean).\n\n3.  **limit**:\n    *   Gib die gewünschte Anzahl als Integer aus, wenn der Nutzer eine spezifische Anzahl von Ergebnissen nennt (z.B. \"Top 10\" -> 10, \"die 5 wichtigsten\" -> 5, \"suche 3 Artikel\" -> 3).\n    *   **Default**: Gib `10` (Integer) aus, wenn keine spezifische Anzahl genannt wird oder ableitbar ist.\n\nAusgabe: **nur** ein gültiges JSON‑Objekt mit genau diesen drei Feldern: \"categories\", \"detailed_output\", und \"limit\".\nBeispiel‑Schema für die Struktur der erwarteten Ausgabe:\n{\n  \"type\": \"object\",\n  \"properties\": {\n    \"categories\": {\n      \"type\": \"string\",\n      \"description\": \"Entweder 'news', 'science' oder '' (leer).\"\n    },\n    \"detailed_output\": {\n      \"type\": \"boolean\",\n      \"description\": \"True für ausführlich, false für kurz.\"\n    },\n    \"limit\": {\n      \"type\": \"integer\",\n      \"description\": \"Anzahl der Quellen, default 10.\"\n    }\n  },\n  \"required\": [\"categories\", \"detailed_output\", \"limit\"]\n}\n\n**Keine** zusätzlichen Erklärungen oder Floskeln, **nur** das JSON.",
+        "hasOutputParser": true
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.6,
+      "position": [
+        160,
+        260
+      ],
+      "id": "fd0b7afd-1b1f-4077-a038-868ab468c073",
+      "name": "Set Parameters per LLM",
+      "alwaysOutputData": true,
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "8e20ea0d-b2da-4ec1-adc1-ba81a5ec6af9",
+              "leftValue": true,
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        5380,
+        1680
+      ],
+      "id": "adca03b4-3f14-4073-95bf-1714563b4b57",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Du bist ein wissenschaftlicher Experte und erforscht die aktuellen Trends von heute und in der Zukunft. Du analysiert folgende Quellen, nach ihrer Relevanz, und wählst nur die Top 10 relevantesten Quellen aus, die irrelevanten Quellen ignorierst du und gibst diese nicht aus.\n\nHier ist die zu beantwortende Research Query:\n{{ $json.output[0].user_question }}\n\nAnalysiere und setze nun die Top 10 Quellen, bei der Auflistung achte darauf\n\n- Thema\n- Analyse\n- url\n\nsollte alles vorhanden sein\n\nHier die zu analysierenden Quellen:\n{{ JSON.stringify($json.output) }}",
+        "hasOutputParser": true,
+        "messages": {
+          "messageValues": [
+            {
+              "message": "=Du bist eine Expertin für Elektrotechnik und Wirtschaft am Standort Deutschland und analysierst auf Professoren-Level für die Forschung.\n"
+            }
+          ]
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.6,
+      "position": [
+        5720,
+        1280
+      ],
+      "id": "6f41f246-ecb0-4ae6-b22d-1c73ac6b4fa5",
+      "name": "Basic LLM Chain3",
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.0-flash-001",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        5760,
+        1480
+      ],
+      "id": "cf5aaaf6-f58e-4094-afe5-457834cffce9",
+      "name": "Google Gemini Chat Model9",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "7F06cMZRr0J6TFQc",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -640,
+        1880
+      ],
+      "id": "ac3e8657-e014-47c1-a619-1014c0970457",
+      "name": "When clicking ‘Test workflow’"
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.retrieverVectorStore",
+      "typeVersion": 1,
+      "position": [
+        3380,
+        2120
+      ],
+      "id": "f215d458-9dac-40f4-aa10-5e8bc8016f28",
+      "name": "Vector Store Retriever"
+    },
+    {
+      "parameters": {
+        "chunkSize": 1500,
+        "chunkOverlap": 100,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.textSplitterRecursiveCharacterTextSplitter",
+      "typeVersion": 1,
+      "position": [
+        3580,
+        780
+      ],
+      "id": "56f57df6-8a02-4e4e-96c7-0f80c8c02665",
+      "name": "Recursive Character Text Splitter"
+    },
+    {
+      "parameters": {
+        "mode": "chooseBranch"
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.1,
+      "position": [
+        20,
+        1680
+      ],
+      "id": "cef30386-9b4f-4f87-b132-ad5c8b84f2a7",
+      "name": "Merge1"
+    },
+    {
+      "parameters": {
+        "tableName": "documents",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStorePGVector",
+      "typeVersion": 1.1,
+      "position": [
+        3440,
+        2340
+      ],
+      "id": "583b8018-e161-4ea0-853b-b79f182b5e11",
+      "name": "Postgres PGVector Store1",
+      "credentials": {
+        "postgres": {
+          "id": "ereWPYqdWvkladAz",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "nomic-embed-text:latest"
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOllama",
+      "typeVersion": 1,
+      "position": [
+        3540,
+        2560
+      ],
+      "id": "6dba91d7-c56e-4e86-9082-dfd085c853ad",
+      "name": "Embeddings Ollama2",
+      "credentials": {
+        "ollamaApi": {
+          "id": "zIemgVIGwcb5Fzlv",
+          "name": "Ollama account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const topicValue = $input.item.json.topic;\n\nconst anzahlItems = 5;\nconst neueItems = [];\n\nfor (let i = 0; i < anzahlItems; i++) {\n  neueItems.push({\n    json: {\n      topic: topicValue\n    }\n  });\n}\n\nreturn neueItems;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        780,
+        1680
+      ],
+      "id": "03a349de-f8f1-497d-8fc1-6f08ecbeee10",
+      "name": "Code1"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Beantworte die user_question: \n\n{{ $json.data[0].output.user_question }}\n\nAnalysiere das und beantworte die user_question ausführlich:\n\n{{ JSON.stringify($json.data) }}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.6,
+      "position": [
+        5720,
+        920
+      ],
+      "id": "ee1e636c-13ca-45bf-b6a7-f7808ee6ff48",
+      "name": "Basic LLM Chain4"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.0-flash-001",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        5800,
+        1100
+      ],
+      "id": "0a3b93a4-3fef-4d8d-a78c-d7c6483b8c16",
+      "name": "Google Gemini Chat Model10",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "7F06cMZRr0J6TFQc",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "chooseBranch",
+        "useDataOfInput": 2
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.1,
+      "position": [
+        5380,
+        920
+      ],
+      "id": "34ff044f-8487-45d2-8a8b-331afc32cb69",
+      "name": "Merge2"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Loop Over Items": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 1
+          }
+        ],
+        [
+          {
+            "node": "HTTP Request8",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out1": {
+      "main": [
+        [
+          {
+            "node": "Postgres PGVector Store",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Get different search variations",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "searxng": {
+      "main": [
+        [
+          {
+            "node": "Split Out3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model2": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Get different search variations",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out2": {
+      "main": [
+        [
+          {
+            "node": "searxng",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out3": {
+      "main": [
+        [
+          {
+            "node": "extract url and query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set search request": {
+      "main": [
+        [
+          {
+            "node": "Set Parameters per LLM",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get different search variations": {
+      "main": [
+        [
+          {
+            "node": "Split Out2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "extract url and query": {
+      "main": [
+        [
+          {
+            "node": "Limit1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request8": {
+      "main": [
+        [
+          {
+            "node": "Split Out1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model5": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Question and Answer Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Question and Answer Chain": {
+      "main": [
+        [
+          {
+            "node": "Information Extractor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Theme Question": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger2": {
+      "main": [
+        [
+          {
+            "node": "Theme Question2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Theme Question2": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "search_docs2": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser1": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Vector Store Retriever1": {
+      "ai_retriever": [
+        [
+          {
+            "node": "Question and Answer Chain1",
+            "type": "ai_retriever",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase Vector Store5": {
+      "ai_vectorStore": [
+        [
+          {
+            "node": "Vector Store Retriever1",
+            "type": "ai_vectorStore",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Ollama4": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Supabase Vector Store5",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model6": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Question and Answer Chain1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "search_docs1": {
+      "main": [
+        [
+          {
+            "node": "Question and Answer Chain1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Question and Answer Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model4": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Information Extractor",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Information Extractor": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items1": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Theme Question",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields1": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Aggregate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model7": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge2",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain1": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Merge2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser2": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Basic LLM Chain1",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items2": {
+      "main": [
+        [
+          {
+            "node": "Replace Me",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Postgres",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres PGVector Store": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Ollama1": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Postgres PGVector Store",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Default Data Loader1": {
+      "ai_document": [
+        [
+          {
+            "node": "Postgres PGVector Store",
+            "type": "ai_document",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Character Text Splitter1": {
+      "ai_textSplitter": [
+        []
+      ]
+    },
+    "Postgres": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "Set search request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model3": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain2",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Limit1": {
+      "main": [
+        [
+          {
+            "node": "Analyse Website or Metadata",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate1": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyse Website or Metadata": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Aggregate1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model8": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Set Parameters per LLM",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser3": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Set Parameters per LLM",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Parameters per LLM": {
+      "main": [
+        [
+          {
+            "node": "Get different search variations",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain3",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Loop Over Items2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model9": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain3",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When clicking ‘Test workflow’": {
+      "main": [
+        []
+      ]
+    },
+    "Vector Store Retriever": {
+      "ai_retriever": [
+        [
+          {
+            "node": "Question and Answer Chain",
+            "type": "ai_retriever",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Recursive Character Text Splitter": {
+      "ai_textSplitter": [
+        [
+          {
+            "node": "Default Data Loader1",
+            "type": "ai_textSplitter",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge1": {
+      "main": [
+        [
+          {
+            "node": "Code1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres PGVector Store1": {
+      "ai_vectorStore": [
+        [
+          {
+            "node": "Vector Store Retriever",
+            "type": "ai_vectorStore",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Ollama2": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Postgres PGVector Store1",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code1": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model10": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain4",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge2": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "fd838223-f1bd-443c-885e-eefc806164cc",
+  "meta": {
+    "instanceId": "259d9a4393d46da31d322eb327090da890e9bf84cf7df0b6a92716d3eb5dd75b"
+  },
+  "id": "Lc3Nm9CJCb8g5rU8",
+  "tags": []
+}
